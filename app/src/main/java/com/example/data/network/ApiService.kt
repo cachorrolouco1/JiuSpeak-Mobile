@@ -1,0 +1,137 @@
+package com.example.data.network
+
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.Response
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.moshi.MoshiConverterFactory
+import retrofit2.http.*
+import java.util.concurrent.TimeUnit
+
+// API Payload Models
+data class LoginRequest(val email: String, val password: String)
+data class RegisterRequest(val email: String, val username: String, val password: String, val beltColor: String)
+data class AuthResponse(val token: String, val refreshToken: String, val user: UserProfileDto)
+data class UserProfileDto(
+    val id: String,
+    val username: String,
+    val email: String,
+    val beltColor: String,
+    val level: Int,
+    val xp: Int,
+    val xpNextLevel: Int,
+    val dailyStreak: Int,
+    val jiuTickets: Int,
+    val avatar: String
+)
+
+data class MissionDto(val id: String, val title: String, val description: String, val ticketsReward: Int, val xpReward: Int, val isCompleted: Boolean, val progress: Int, val maxProgress: Int)
+data class PostDto(val id: String, val authorName: String, val authorBelt: String, val authorLevel: Int, val content: String, val imageUrl: String?, val likesCount: Int, val commentsCount: Int, val timestamp: Long)
+data class CreatePostRequest(val content: String, val imageUrl: String?)
+data class PvpMatchResultDto(val opponentName: String, val opponentBelt: String, val opponentAvatar: String, val matchType: String, val scoreMe: Int, val scoreOpponent: Int, val outcome: String)
+data class CourseDto(val id: String, val title: String, val subtitle: String, val category: String, val totalLessons: Int, val completedLessons: Int, val isCertified: Boolean, val xpMultiplier: Float)
+data class TeacherDto(val id: String, val name: String, val belt: String, val rating: Float, val hourlyRate: Int, val bio: String, val country: String, val imageUrl: String)
+data class TokenRefreshRequest(val refreshToken: String)
+data class TokenRefreshResponse(val token: String, val refreshToken: String)
+
+interface JiuSpeakApi {
+    @POST("api/auth/login")
+    suspend fun login(@Body request: LoginRequest): AuthResponse
+
+    @POST("api/auth/register")
+    suspend fun register(@Body request: RegisterRequest): AuthResponse
+
+    @POST("api/auth/refresh")
+    suspend fun refreshToken(@Body request: TokenRefreshRequest): TokenRefreshResponse
+
+    @GET("api/user/profile")
+    suspend fun getProfile(@Header("Authorization") token: String): UserProfileDto
+
+    @GET("api/missions")
+    suspend fun getMissions(@Header("Authorization") token: String): List<MissionDto>
+
+    @POST("api/missions/{id}/complete")
+    suspend fun completeMission(@Header("Authorization") token: String, @Path("id") id: String): UserProfileDto
+
+    @GET("api/feed")
+    suspend fun getFeed(@Header("Authorization") token: String): List<PostDto>
+
+    @POST("api/feed/post")
+    suspend fun createPost(@Header("Authorization") token: String, @Body request: CreatePostRequest): PostDto
+
+    @POST("api/feed/post/{id}/like")
+    suspend fun likePost(@Header("Authorization") token: String, @Path("id") id: String): PostDto
+
+    @GET("api/arena/history")
+    suspend fun getPvpMatches(@Header("Authorization") token: String): List<PvpMatchResultDto>
+
+    @POST("api/arena/match")
+    suspend fun recordPvpMatch(@Header("Authorization") token: String, @Body result: PvpMatchResultDto): UserProfileDto
+
+    @GET("api/courses")
+    suspend fun getCourses(@Header("Authorization") token: String): List<CourseDto>
+
+    @GET("api/marketplace/teachers")
+    suspend fun getTeachers(@Header("Authorization") token: String): List<TeacherDto>
+}
+
+object JiuSpeakApiClient {
+    private var currentRetrofit: Retrofit? = null
+    private var currentApi: JiuSpeakApi? = null
+    private var configuredBaseUrl = "http://10.0.2.2:3000/" // Default local emulator connection loop
+
+    fun configure(baseUrl: String) {
+        var formattedUrl = baseUrl.trim()
+        if (!formattedUrl.endsWith("/")) {
+            formattedUrl += "/"
+        }
+        if (formattedUrl != configuredBaseUrl || currentApi == null) {
+            configuredBaseUrl = formattedUrl
+            buildClient()
+        }
+    }
+
+    fun getApi(): JiuSpeakApi? {
+        if (currentApi == null) {
+            buildClient()
+        }
+        return currentApi
+    }
+
+    fun getBaseUrl(): String = configuredBaseUrl
+
+    private fun buildClient() {
+        try {
+            val logging = HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+
+            val client = OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .addInterceptor(logging)
+                .addInterceptor(object : Interceptor {
+                    override fun intercept(chain: Interceptor.Chain): Response {
+                        val request = chain.request().newBuilder()
+                            .header("Accept", "application/json")
+                            .header("Content-Type", "application/json")
+                            .build()
+                        return chain.proceed(request)
+                    }
+                })
+                .build()
+
+            currentRetrofit = Retrofit.Builder()
+                .baseUrl(configuredBaseUrl)
+                .client(client)
+                .addConverterFactory(MoshiConverterFactory.create())
+                .build()
+
+            currentApi = currentRetrofit?.create(JiuSpeakApi::class.java)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            currentApi = null
+        }
+    }
+}

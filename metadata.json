@@ -1,0 +1,6 @@
+{
+  "name": "JiuSpeak Mobile",
+  "description": "The ultimate gamified social platform for Brazilian Jiu-Jitsu practitioners learning languages globally.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer Shield / Global Belt Medallion -->
+    <path
+        android:strokeColor="#009DFF"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M 54 18 L 84 32 L 84 64 L 54 90 L 24 64 L 24 32 Z" />
+    
+    <!-- Speaking bubbles crossed to represent JiuSpeak -->
+    <path
+        android:pathData="M 40,40 h 24 c 4.4,0 8,3.6 8,8 v 12 c 0,4.4 -3.6,8 -8,8 h -2 l -6,6 v -6 h -16 c -4.4,0 -8,-3.6 -8,-8 v -12 c 0,-4.4 3.6,-8 8,-8 z"
+        android:fillColor="#00BFFF" />
+        
+    <!-- Inner crossed sparring swords representing tournament combat -->
+    <path
+        android:pathData="M 44,48 L 64,64 M 64,48 L 44,64"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round" />
+</vector>
