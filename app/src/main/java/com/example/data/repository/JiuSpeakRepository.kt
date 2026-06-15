@@ -34,7 +34,7 @@ class JiuSpeakRepository(
         get() = prefs.getString("api_url", com.example.data.network.ApiConfig.productionBaseUrl) ?: com.example.data.network.ApiConfig.productionBaseUrl
 
     val isOfflineMode: Boolean
-        get() = prefs.getBoolean("is_offline_mode", false) // Default false to integrate real production API immediately
+        get() = false
 
     val isLoggedIn: Boolean
         get() = prefs.getString("auth_token", null) != null
@@ -230,16 +230,8 @@ class JiuSpeakRepository(
 
     suspend fun login(email: String, prepopulatedPass: String): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
         try {
-            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
-                // Offline fallback - simulate success
-                val profile = userDao.getProfileDirect() ?: UserProfileEntity()
-                val updated = profile.copy(email = email, username = email.substringBefore("@"))
-                userDao.insertProfile(updated)
-                prefs.edit().putString("auth_token", "jwt_offline_mock").apply()
-                return@withContext Result.success(updated)
-            }
-
-            val response = JiuSpeakApiClient.getApi()!!.login(LoginRequest(email, prepopulatedPass))
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val response = api.login(LoginRequest(email, prepopulatedPass))
             prefs.edit().putString("auth_token", response.token).apply()
 
             val entity = UserProfileEntity(
@@ -256,20 +248,14 @@ class JiuSpeakRepository(
             userDao.insertProfile(entity)
             Result.success(entity)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(mapHttpException(e))
         }
     }
 
     suspend fun register(email: String, username: String, pass: String, belt: String): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
         try {
-            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
-                val profile = UserProfileEntity(email = email, username = username, beltColor = belt)
-                userDao.insertProfile(profile)
-                prefs.edit().putString("auth_token", "jwt_offline_mock").apply()
-                return@withContext Result.success(profile)
-            }
-
-            val response = JiuSpeakApiClient.getApi()!!.register(RegisterRequest(email, username, pass, belt))
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val response = api.register(RegisterRequest(email, username, pass, belt))
             prefs.edit().putString("auth_token", response.token).apply()
 
             val entity = UserProfileEntity(
@@ -286,7 +272,7 @@ class JiuSpeakRepository(
             userDao.insertProfile(entity)
             Result.success(entity)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(mapHttpException(e))
         }
     }
 
@@ -729,6 +715,27 @@ class JiuSpeakRepository(
 
     suspend fun logout() {
         prefs.edit().remove("auth_token").apply()
-        // We do not clear the profile completely, so that stats are preserved of local player
+        try {
+            database.clearAllTables()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun mapHttpException(e: Exception): Exception {
+        if (e is retrofit2.HttpException) {
+            val code = e.code()
+            var errorBodyStr = ""
+            try {
+                errorBodyStr = e.response()?.errorBody()?.string() ?: ""
+            } catch (ignored: Exception) {}
+            val message = if (errorBodyStr.isNotBlank()) {
+                "Erro do Servidor ($code): $errorBodyStr"
+            } else {
+                "Erro de Conexão ($code): ${e.message()}"
+            }
+            return Exception(message)
+        }
+        return e
     }
 }

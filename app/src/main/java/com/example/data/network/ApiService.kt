@@ -281,7 +281,44 @@ object JiuSpeakApiClient {
                             .header("Accept", "application/json")
                             .header("Content-Type", "application/json")
                             .build()
-                        return chain.proceed(request)
+
+                        // Explicitly log request headers and body details
+                        println("=== JIUSPEAK API REQUEST START ===")
+                        println("URL: ${request.url}")
+                        println("METHOD: ${request.method}")
+                        request.headers.forEach { pair ->
+                            println("REQUEST HEADER: ${pair.first}: ${pair.second}")
+                        }
+                        request.body?.let { body ->
+                            try {
+                                val buffer = okio.Buffer()
+                                body.writeTo(buffer)
+                                val bodyStr = buffer.readUtf8()
+                                println("REQUEST BODY: $bodyStr")
+                            } catch (e: Exception) {
+                                println("REQUEST BODY LOG ERROR: ${e.message}")
+                            }
+                        }
+                        println("=== JIUSPEAK API REQUEST END ===")
+
+                        val response = chain.proceed(request)
+
+                        // Explicitly log response status code, headers and body details
+                        println("=== JIUSPEAK API RESPONSE START ===")
+                        println("HTTP CODE: ${response.code}")
+                        response.headers.forEach { pair ->
+                            println("RESPONSE HEADER: ${pair.first}: ${pair.second}")
+                        }
+                        try {
+                            val responseBodyCopy = response.peekBody(1024 * 1024)
+                            val bodyStr = responseBodyCopy.string()
+                            println("RESPONSE BODY: $bodyStr")
+                        } catch (e: Exception) {
+                            println("RESPONSE BODY LOG ERROR: ${e.message}")
+                        }
+                        println("=== JIUSPEAK API RESPONSE END ===")
+
+                        return response
                     }
                 })
                 .build()
