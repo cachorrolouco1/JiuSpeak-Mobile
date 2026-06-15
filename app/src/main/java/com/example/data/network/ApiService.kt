@@ -14,10 +14,8 @@ import java.util.concurrent.TimeUnit
 data class LoginRequest(val email: String, val password: String)
 data class RegisterRequest(val email: String, val username: String, val password: String, val beltColor: String)
 data class AuthResponse(
-    @SerializedName("accessToken", alternate = ["token"])
+    @SerializedName("token", alternate = ["accessToken"])
     val token: String,
-    @SerializedName("accessToken", alternate = ["token"])
-    val accessToken: String,
     val refreshToken: String,
     val user: UserProfileDto
 )
