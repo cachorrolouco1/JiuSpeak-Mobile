@@ -88,6 +88,33 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
     val achievements: StateFlow<List<AchievementEntity>> = repository.achievementsFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // Shop and Inventory flows
+    private val _shopItems = MutableStateFlow<List<com.example.data.network.ShopItemDto>>(emptyList())
+    val shopItems: StateFlow<List<com.example.data.network.ShopItemDto>> = _shopItems
+
+    private val _inventoryItems = MutableStateFlow<List<com.example.data.network.InventoryItemDto>>(emptyList())
+    val inventoryItems: StateFlow<List<com.example.data.network.InventoryItemDto>> = _inventoryItems
+    
+    fun loadShopItems() {
+        viewModelScope.launch {
+            repository.fetchShopItems().onSuccess {
+                _shopItems.value = it
+            }.onFailure {
+                _shopItems.value = emptyList()
+            }
+        }
+    }
+
+    fun loadInventory() {
+        viewModelScope.launch {
+            repository.fetchInventory().onSuccess {
+                _inventoryItems.value = it
+            }.onFailure {
+                _inventoryItems.value = emptyList()
+            }
+        }
+    }
+
     init {
         viewModelScope.launch {
             repository.seedMockDataIfEmpty()
@@ -252,16 +279,27 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
     }
 
     // Shop workflows
-    fun buyAestheticItem(name: String, frameColor: String, cost: Int) {
+    fun buyAestheticItem(itemId: String) {
         viewModelScope.launch {
-            val profile = userProfile.value ?: return@launch
-            if (profile.jiuTickets >= cost) {
-                addLog("Purchasing aesthetic profile customize: $name ($cost JiuTickets)")
-                repository.purchaseShopItem(cost)
-                repository.updateAvatar(name, frameColor)
-                addLog("Profile customization updated gracefully!")
-            } else {
-                addLog("ERROR: Insufficient JiuTickets balance.")
+            addLog("Enviando requisição de compra do item '$itemId' ao servidor...")
+            repository.purchaseShopItemRemote(itemId).onSuccess {
+                addLog("Compra do item '$itemId' concluída com sucesso! Atualizado pelo servidor.")
+                loadInventory()
+                loadShopItems()
+            }.onFailure {
+                addLog("Erro ao comprar item no Shogun Store: ${it.localizedMessage}")
+            }
+        }
+    }
+
+    fun equipInventoryItem(itemId: String) {
+        viewModelScope.launch {
+            addLog("Equipando item '$itemId' no servidor...")
+            repository.equipItemRemote(itemId).onSuccess {
+                addLog("Item '$itemId' equipado com sucesso!")
+                loadInventory()
+            }.onFailure {
+                addLog("Promoção/Erro de equipagem: ${it.localizedMessage}")
             }
         }
     }
@@ -434,6 +472,28 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
     fun syncAllData() {
         viewModelScope.launch {
             addLog("Sincronizando conquistas, ligas, times e passe com o servidor...")
+            
+            repository.fetchRemoteProfile().onSuccess {
+                addLog("Perfil do Atleta '${it.username}' carregado e sincronizado.")
+            }.onFailure {
+                addLog("Aviso: Falha ao obter dados atualizados de perfil do servidor.")
+            }
+
+            repository.syncRemoteMissions().onSuccess {
+                addLog("Missões diárias sincronizadas com sucesso.")
+            }.onFailure {
+                addLog("Aviso: Falha ao sincronizar missões diárias com o servidor.")
+            }
+
+            repository.syncRemotePvpHistory().onSuccess {
+                addLog("Histórico de combate PvP sincronizado com sucesso (${it.size} confrontos).")
+            }.onFailure {
+                addLog("Aviso: Falha ao sincronizar histórico PvP.")
+            }
+
+            loadShopItems()
+            loadInventory()
+
             repository.syncActiveSeason().onSuccess {
                 addLog("Passe de Temporada '${it.name}' sincronizado.")
             }.onFailure {

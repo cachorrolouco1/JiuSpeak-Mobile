@@ -16,26 +16,39 @@ data class LoginRequest(val email: String, val password: String)
 data class RegisterRequest(val email: String, val username: String, val password: String, val beltColor: String)
 data class AuthResponse(
     @SerializedName("token", alternate = ["accessToken"])
-    val token: String,
-    val refreshToken: String,
-    val user: UserProfileDto
+    val token: String? = null,
+    val refreshToken: String? = null,
+    val user: UserProfileDto? = null
 )
 data class UserProfileDto(
-    val id: String,
-    val username: String,
-    val email: String,
-    val beltColor: String,
-    val level: Int,
-    val xp: Int,
-    val xpNextLevel: Int,
-    val dailyStreak: Int,
-    val jiuTickets: Int,
-    val avatar: String,
+    @SerializedName("id")
+    val id: String? = null,
+    @SerializedName("username", alternate = ["userName", "apelido"])
+    val username: String? = null,
+    @SerializedName("email")
+    val email: String? = null,
+    @SerializedName("beltColor", alternate = ["belt", "belt_level", "belt_color", "faixa"])
+    val beltColor: String? = null,
+    @SerializedName("level", alternate = ["nivel", "lvl"])
+    val level: Int? = null,
+    @SerializedName("xp", alternate = ["experience", "pontos"])
+    val xp: Int? = null,
+    @SerializedName("xpNextLevel")
+    val xpNextLevel: Int? = null,
+    @SerializedName("dailyStreak", alternate = ["streak", "ofensiva"])
+    val dailyStreak: Int? = null,
+    @SerializedName("jiuTickets", alternate = ["tickets", "moedas"])
+    val jiuTickets: Int? = null,
+    @SerializedName("avatar", alternate = ["selectedAvatar", "avatar_url"])
+    val avatar: String? = null,
+    @SerializedName("frameColor", alternate = ["selectedFrameColor", "frame_color", "moldura"])
+    val frameColor: String? = null,
     val bio: String? = null,
     val city: String? = null,
     val country: String? = null,
     val nativeLanguage: String? = null,
     val studiedLanguages: String? = null,
+    @SerializedName("learningGoals", alternate = ["goals", "learning_goals", "objetivos"])
     val learningGoals: String? = null,
     val instagram: String? = null,
     val youtube: String? = null,
@@ -182,6 +195,30 @@ data class AchievementDto(
     val unlockedAtTimestamp: Long?
 )
 
+data class PurchaseRequest(
+    @SerializedName("itemId") val itemId: String
+)
+
+data class EquipRequest(
+    @SerializedName("itemId") val itemId: String
+)
+
+data class ShopItemDto(
+    @SerializedName("id") val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("avatarId") val avatarId: String,
+    @SerializedName("frameColor") val frameColor: String,
+    @SerializedName("cost") val cost: Int
+)
+
+data class InventoryItemDto(
+    @SerializedName("id") val id: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("avatarId") val avatarId: String,
+    @SerializedName("frameColor") val frameColor: String,
+    @SerializedName("isEquipped") val isEquipped: Boolean = false
+)
+
 interface JiuSpeakApi {
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
@@ -255,6 +292,18 @@ interface JiuSpeakApi {
 
     @GET("api/achievements")
     suspend fun getAchievements(@Header("Authorization") token: String): List<AchievementDto>
+
+    @GET("api/shop/items")
+    suspend fun getShopItems(@Header("Authorization") token: String): List<ShopItemDto>
+
+    @POST("api/shop/purchase")
+    suspend fun purchaseShopItem(@Header("Authorization") token: String, @Body request: PurchaseRequest): UserProfileDto
+
+    @GET("api/user/inventory")
+    suspend fun getInventory(@Header("Authorization") token: String): List<InventoryItemDto>
+
+    @POST("api/user/equip-item")
+    suspend fun equipItem(@Header("Authorization") token: String, @Body request: EquipRequest): UserProfileDto
 }
 
 object JiuSpeakApiClient {

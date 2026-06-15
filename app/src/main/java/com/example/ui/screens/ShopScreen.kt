@@ -9,7 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,6 +31,14 @@ import com.example.ui.widgets.GlowButton
 fun ShopScreen(viewModel: JiuSpeakViewModel) {
     val profile by viewModel.userProfile.collectAsState()
     val currentProfile = profile ?: UserProfileEntity()
+
+    val shopItems by viewModel.shopItems.collectAsState()
+    val inventoryItems by viewModel.inventoryItems.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadShopItems()
+        viewModel.loadInventory()
+    }
 
     Column(
         modifier = Modifier
@@ -72,20 +80,25 @@ fun ShopScreen(viewModel: JiuSpeakViewModel) {
                     }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(GoldAccent)
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                IconButton(
+                    onClick = {
+                        viewModel.loadShopItems()
+                        viewModel.loadInventory()
+                        viewModel.syncAllData()
+                    }
                 ) {
-                    Text("EARN IN ARENA", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Recarregar Loja",
+                        tint = GoldAccent
+                    )
                 }
             }
         }
 
-        // STORE SECTIONS
+        // STORE SECTION
         Text(
-            text = "LEGENDARY AVATARS & SHAPE FRAMES",
+            text = "SHOP BOUTIQUE CATALOG",
             fontSize = 11.sp,
             fontWeight = FontWeight.Black,
             color = NeonBlue,
@@ -93,92 +106,206 @@ fun ShopScreen(viewModel: JiuSpeakViewModel) {
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
-        val items = listOf(
-            Triple("SHŌGUN GI SHIELD", "avatar_charles", Pair("#E11D48", 500)), // GI emoji
-            Triple("ELITE SAMURAI MASK", "avatar_john", Pair("#FBBF24", 800)),
-            Triple("COSMIC SPIRIT EAGLE", "avatar_igor", Pair("#009DFF", 400)),
-            Triple("GLADIATOR CLAW", "avatar_fighter3", Pair("#10B981", 300)),
-            Triple("BLITZ LIGHTNING STORM", "avatar_fighter1", Pair("#8B5CF6", 600)),
-            Triple("NEON SPAR GLOVE", "avatar_fighter2", Pair("#EC4899", 250))
-        )
-
-        items.chunked(2).forEach { rowItems ->
-            Row(
+        if (shopItems.isEmpty()) {
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(vertical = 24.dp)
+                    .border(1.dp, DarkCard, RoundedCornerShape(8.dp))
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
             ) {
-                rowItems.forEach { (name, id, options) ->
-                    val (hexColor, cost) = options
-                    val isPurchasable = currentProfile.jiuTickets >= cost
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "O Shōgun catálogo de vendas está vazio no servidor.",
+                        color = FontSecondary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Não há itens cadastrados ou você já possui todos.",
+                        color = FontSecondary.copy(alpha = 0.7f),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        } else {
+            shopItems.chunked(2).forEach { rowItems ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowItems.forEach { item ->
+                        val isPurchasable = currentProfile.jiuTickets >= item.cost
 
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable(enabled = isPurchasable) {
-                                viewModel.buyAestheticItem(id, hexColor, cost)
-                            },
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                        border = BorderStroke(1.dp, if (isPurchasable) NeonCyan.copy(alpha = 0.3f) else DarkCard)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    viewModel.buyAestheticItem(item.id)
+                                },
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            border = BorderStroke(1.dp, if (isPurchasable) NeonCyan.copy(alpha = 0.3f) else DarkCard)
                         ) {
-                            AvatarWithFrame(
-                                avatarId = id,
-                                frameColorHex = hexColor,
-                                level = currentProfile.level,
-                                size = 56.dp
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = name,
-                                color = FontPrimary,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 11.sp,
-                                maxLines = 1
-                            )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            // Cost Row
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text("💎", fontSize = 11.sp)
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text(
-                                    text = "$cost Tickets",
-                                    color = if (isPurchasable) GoldAccent else FontSecondary,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.Monospace
+                                AvatarWithFrame(
+                                    avatarId = item.avatarId,
+                                    frameColorHex = item.frameColor,
+                                    level = currentProfile.level,
+                                    size = 56.dp
                                 )
-                            }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(if (isPurchasable) NeonBlue else DarkCard)
-                                    .padding(vertical = 6.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
                                 Text(
-                                    text = if (currentProfile.selectedAvatar == id) "EQUIPPED" else if (isPurchasable) "UNLOCK" else "LOCKED",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isPurchasable) Color.White else FontSecondary
+                                    text = item.name,
+                                    color = FontPrimary,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp,
+                                    maxLines = 1
                                 )
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text("💎", fontSize = 11.sp)
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = "${item.cost} Tickets",
+                                        color = if (isPurchasable) GoldAccent else FontSecondary,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isPurchasable) NeonBlue else DarkCard)
+                                        .padding(vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (currentProfile.selectedAvatar == item.avatarId) "EQUIPPED" else if (isPurchasable) "UNLOCK" else "COMPRAR",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isPurchasable) Color.White else FontSecondary
+                                    )
+                                }
                             }
                         }
+                    }
+                    if (rowItems.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // PERSONAL INVENTORY SECTION
+        Text(
+            text = "SEU INVENTÓRIO (ARMORY)",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black,
+            color = NeonCyan,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        if (inventoryItems.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp)
+                    .border(1.dp, DarkCard, RoundedCornerShape(8.dp))
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Nenhum item cosmético no inventário do servidor.",
+                    color = FontSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        } else {
+            inventoryItems.chunked(2).forEach { rowItems ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowItems.forEach { item ->
+                        val isEquipped = item.isEquipped || currentProfile.selectedAvatar == item.avatarId
+
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    viewModel.equipInventoryItem(item.id)
+                                },
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            border = BorderStroke(1.dp, if (isEquipped) GoldAccent.copy(alpha = 0.5f) else DarkCard)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                AvatarWithFrame(
+                                    avatarId = item.avatarId,
+                                    frameColorHex = item.frameColor,
+                                    level = currentProfile.level,
+                                    size = 56.dp
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                    text = item.name,
+                                    color = FontPrimary,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp,
+                                    maxLines = 1
+                                )
+
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (isEquipped) GoldAccent else DarkCard)
+                                        .padding(vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (isEquipped) "EQUIPPED" else "EQUIPAR",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isEquipped) Color.Black else FontSecondary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (rowItems.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }

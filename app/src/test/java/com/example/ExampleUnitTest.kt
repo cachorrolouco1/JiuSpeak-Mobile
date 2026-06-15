@@ -142,4 +142,43 @@ class ExampleUnitTest {
         assertTrue("Expected credential rejection instead of CSRF block", response.code == 401 || response.code == 404)
     }
   }
+
+  @Test
+  fun test_user_profile_dto_alternate_and_null_defense() {
+    val gson = com.google.gson.GsonBuilder().create()
+
+    // Test Case 1: All fields missing (nulls)
+    val jsonMissingFields = "{}"
+    val dto1 = gson.fromJson(jsonMissingFields, com.example.data.network.UserProfileDto::class.java)
+    assertNull(dto1.beltColor)
+    assertNull(dto1.username)
+
+    // Verify defensive mapping on nulls
+    val entity1 = com.example.data.repository.JiuSpeakRepository.mapDtoToEntity(dto1, "dummy_token")
+    assertNotNull(entity1)
+    assertEquals("WHITE", entity1.beltColor) // default
+    assertEquals("AtletaGuerreiro", entity1.username) // default
+    assertEquals("campeao@jiuspeak.com", entity1.email) // default
+    assertEquals(1, entity1.level) // default
+    assertEquals("avatar_fighter", entity1.selectedAvatar) // default
+    assertEquals("#009DFF", entity1.selectedFrameColor) // default
+
+    // Test Case 2: beltColor supplied via alternate name "faixa"
+    val jsonFaixa = "{\"faixa\":\"PURPLE\",\"apelido\":\"Hideo\"}"
+    val dto2 = gson.fromJson(jsonFaixa, com.example.data.network.UserProfileDto::class.java)
+    assertEquals("PURPLE", dto2.beltColor)
+    assertEquals("Hideo", dto2.username)
+    
+    val entity2 = com.example.data.repository.JiuSpeakRepository.mapDtoToEntity(dto2, "dummy_token")
+    assertEquals("PURPLE", entity2.beltColor)
+    assertEquals("Hideo", entity2.username)
+
+    // Test Case 3: beltColor supplied via alternate name "belt_color" and empty value checks
+    val jsonEmptyBelt = "{\"belt_color\":\"\"}"
+    val dto3 = gson.fromJson(jsonEmptyBelt, com.example.data.network.UserProfileDto::class.java)
+    assertEquals("", dto3.beltColor)
+    
+    val entity3 = com.example.data.repository.JiuSpeakRepository.mapDtoToEntity(dto3, "dummy_token")
+    assertEquals("WHITE", entity3.beltColor) // converted to default WHITE because it was empty
+  }
 }
