@@ -29,7 +29,21 @@ data class UserProfileDto(
     val xpNextLevel: Int,
     val dailyStreak: Int,
     val jiuTickets: Int,
-    val avatar: String
+    val avatar: String,
+    val bio: String? = null,
+    val city: String? = null,
+    val country: String? = null,
+    val nativeLanguage: String? = null,
+    val studiedLanguages: String? = null,
+    val learningGoals: String? = null,
+    val instagram: String? = null,
+    val youtube: String? = null,
+    val facebook: String? = null,
+    val website: String? = null,
+    val coverPhoto: String? = null,
+    val isVerified: Boolean? = null,
+    val followersCount: Int? = null,
+    val followingCount: Int? = null
 )
 
 data class MissionDto(val id: String, val title: String, val description: String, val ticketsReward: Int, val xpReward: Int, val isCompleted: Boolean, val progress: Int, val maxProgress: Int)

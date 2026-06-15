@@ -173,16 +173,6 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
     }
 
     // Authentication workflows
-    fun loginOffline() {
-        viewModelScope.launch {
-            _authError.value = null
-            addLog("Bypassing server. Logging in via Offline Demo Mode.")
-            repository.loginOffline()
-            _isLoggedIn.value = true
-            addLog("Logged in via Offline Demo mode with local Room database storage.")
-        }
-    }
-
     fun login(email: String, prepopulatedPass: String) {
         viewModelScope.launch {
             _authError.value = null

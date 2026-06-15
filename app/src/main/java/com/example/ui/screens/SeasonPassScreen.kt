@@ -38,8 +38,6 @@ fun SeasonPassScreen(viewModel: JiuSpeakViewModel) {
     val activeSeason by viewModel.activeSeason.collectAsState()
     val rewards by viewModel.seasonRewards.collectAsState()
 
-    val season = activeSeason ?: return
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -73,15 +71,71 @@ fun SeasonPassScreen(viewModel: JiuSpeakViewModel) {
         },
         modifier = Modifier.fillMaxSize()
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DarkBg)
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
+        val season = activeSeason
+        if (season == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkBg)
+                    .padding(padding)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .border(
+                            BorderStroke(
+                                1.5.dp,
+                                Brush.horizontalGradient(listOf(NeonBlue, NeonCyan))
+                            ), RoundedCornerShape(16.dp)
+                        ),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0D1527))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text("🛡️", fontSize = 64.sp)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "TEMPORADAS EM IMPLANTAÇÃO",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 16.sp,
+                            color = Color.White,
+                            fontFamily = FontFamily.Monospace,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "O sistema de Temporadas e Passe de Elite (Season Pass) está em fase de implantação no servidor oficial de produção. Dados locais fictícios do passe foram removidos em conformidade com as regras de auditoria.",
+                            fontSize = 12.sp,
+                            color = FontSecondary,
+                            lineHeight = 18.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Button(
+                            onClick = { viewModel.syncAllData() },
+                            colors = ButtonDefaults.buttonColors(containerColor = NeonCyan)
+                        ) {
+                            Text("VERIFICAR CONEXÃO REAL", color = Color.Black, fontWeight = FontWeight.Black)
+                        }
+                    }
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkBg)
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
             // Season Epic Banner Card
             item {
                 Card(
@@ -306,6 +360,7 @@ fun SeasonPassScreen(viewModel: JiuSpeakViewModel) {
             }
         }
     }
+}
 }
 
 @Composable

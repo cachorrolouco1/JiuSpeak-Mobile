@@ -96,33 +96,13 @@ fun LoginScreen(viewModel: JiuSpeakViewModel) {
                 )
 
                 if (authError != null) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = authError ?: "",
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { viewModel.loginOffline() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0x3300F0FF)),
-                            border = BorderStroke(1.dp, NeonCyan),
-                            shape = RoundedCornerShape(4.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "ENTRAR NO MODO DEMO OFFLINE",
-                                color = NeonCyan,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                    Text(
+                        text = authError ?: "",
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    )
                 }
 
                 // Email Input
@@ -300,25 +280,7 @@ fun LoginScreen(viewModel: JiuSpeakViewModel) {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
-                HorizontalDivider(color = DarkCard, thickness = 1.dp)
-                Spacer(modifier = Modifier.height(16.dp))
 
-                Button(
-                    onClick = { viewModel.loginOffline() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    border = BorderStroke(1.dp, NeonBlue),
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "EXPLORAR APP SEM CONEXÃO (MODO DEMO)",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.5.sp
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(30.dp))

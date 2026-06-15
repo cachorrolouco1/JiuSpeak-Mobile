@@ -141,6 +141,19 @@ tasks.register("copyApkToReleases") {
       
       sourceFile.copyTo(targetFileCustom, overwrite = true)
       logger.lifecycle("--- COPY CUSTOM APK SUCCESS: ${sourceFile.length()} bytes copied to releases/jiuspeakmobilev1.0.0.apk ---")
+      
+      // Calculate SHA-256
+      val digest = MessageDigest.getInstance("SHA-256")
+      val stream = sourceFile.inputStream()
+      val buffer = ByteArray(8192)
+      var bytesRead = stream.read(buffer)
+      while (bytesRead != -1) {
+        digest.update(buffer, 0, bytesRead)
+        bytesRead = stream.read(buffer)
+      }
+      stream.close()
+      val sha256 = digest.digest().joinToString("") { "%02x".format(it) }
+      logger.lifecycle("--- APK SHA-256 HASH: $sha256 ---")
     } else {
       logger.error("--- COPY APK ERROR: Source APK file NOT found at: ${sourceFile.absolutePath} ---")
     }

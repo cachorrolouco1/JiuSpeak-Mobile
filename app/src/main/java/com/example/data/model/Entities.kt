@@ -18,7 +18,21 @@ data class UserProfileEntity(
     val selectedAvatar: String = "avatar_fighter",
     val selectedFrameColor: String = "#009DFF",
     val currentWeeklyRankingRank: Int = 4,
-    val activeToken: String = "jwt_premium_mock_token_jiuspeak_secret_key"
+    val activeToken: String = "jwt_premium_mock_token_jiuspeak_secret_key",
+    val bio: String = "BJJ Athlete studying English for international tournaments.",
+    val city: String = "Rio de Janeiro",
+    val country: String = "Brazil",
+    val nativeLanguage: String = "Portuguese",
+    val studiedLanguages: String = "English",
+    val learningGoals: String = "Fluent English for Teaching Seminars",
+    val instagram: String = "jiuspeak",
+    val youtube: String = "jiuspeak_channel",
+    val facebook: String = "jiuspeakofficial",
+    val website: String = "www.jiuspeak.com.br",
+    val coverPhoto: String = "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600",
+    val isVerified: Boolean = true,
+    val followersCount: Int = 1420,
+    val followingCount: Int = 523
 )
 
 @Entity(tableName = "daily_missions")

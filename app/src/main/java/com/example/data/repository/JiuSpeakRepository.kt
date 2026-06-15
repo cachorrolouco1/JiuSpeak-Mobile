@@ -228,24 +228,6 @@ class JiuSpeakRepository(
 
     // Network & Sync logic with full offline fallbacks (to support local emulator playground)
 
-    suspend fun loginOffline() = withContext(Dispatchers.IO) {
-        prefs.edit().putString("auth_token", "demo_token").apply()
-        val profile = userDao.getProfileDirect()
-        if (profile == null) {
-            userDao.insertProfile(UserProfileEntity(
-                email = "offline-champion@jiuspeak.com",
-                username = "ChampionOffline",
-                beltColor = "BLUE",
-                level = 1,
-                xp = 120,
-                xpNextLevel = 1000,
-                dailyStreak = 3,
-                jiuTickets = 1500,
-                activeToken = "demo_token"
-            ))
-        }
-    }
-
     suspend fun login(email: String, prepopulatedPass: String): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
         try {
             JiuSpeakApiClient.ensureCsrf()
@@ -262,7 +244,21 @@ class JiuSpeakRepository(
                 dailyStreak = response.user.dailyStreak,
                 jiuTickets = response.user.jiuTickets,
                 beltColor = response.user.beltColor,
-                activeToken = response.token
+                activeToken = response.token,
+                bio = response.user.bio ?: "BJJ Athlete studying English for international tournaments.",
+                city = response.user.city ?: "Rio de Janeiro",
+                country = response.user.country ?: "Brazil",
+                nativeLanguage = response.user.nativeLanguage ?: "Portuguese",
+                studiedLanguages = response.user.studiedLanguages ?: "English",
+                learningGoals = response.user.learningGoals ?: "Fluent English for Teaching Seminars",
+                instagram = response.user.instagram ?: "jiuspeak",
+                youtube = response.user.youtube ?: "jiuspeak_channel",
+                facebook = response.user.facebook ?: "jiuspeakofficial",
+                website = response.user.website ?: "www.jiuspeak.com.br",
+                coverPhoto = response.user.coverPhoto ?: "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600",
+                isVerified = response.user.isVerified ?: true,
+                followersCount = response.user.followersCount ?: 1420,
+                followingCount = response.user.followingCount ?: 523
             )
             userDao.insertProfile(entity)
             Result.success(entity)
@@ -287,7 +283,21 @@ class JiuSpeakRepository(
                 xpNextLevel = response.user.xpNextLevel,
                 dailyStreak = response.user.dailyStreak,
                 jiuTickets = response.user.jiuTickets,
-                activeToken = response.token
+                activeToken = response.token,
+                bio = response.user.bio ?: "BJJ Athlete studying English for international tournaments.",
+                city = response.user.city ?: "Rio de Janeiro",
+                country = response.user.country ?: "Brazil",
+                nativeLanguage = response.user.nativeLanguage ?: "Portuguese",
+                studiedLanguages = response.user.studiedLanguages ?: "English",
+                learningGoals = response.user.learningGoals ?: "Fluent English for Teaching Seminars",
+                instagram = response.user.instagram ?: "jiuspeak",
+                youtube = response.user.youtube ?: "jiuspeak_channel",
+                facebook = response.user.facebook ?: "jiuspeakofficial",
+                website = response.user.website ?: "www.jiuspeak.com.br",
+                coverPhoto = response.user.coverPhoto ?: "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600",
+                isVerified = response.user.isVerified ?: true,
+                followersCount = response.user.followersCount ?: 1420,
+                followingCount = response.user.followingCount ?: 523
             )
             userDao.insertProfile(entity)
             Result.success(entity)
@@ -313,7 +323,21 @@ class JiuSpeakRepository(
                 xpNextLevel = userDto.xpNextLevel,
                 dailyStreak = userDto.dailyStreak,
                 jiuTickets = userDto.jiuTickets,
-                activeToken = token
+                activeToken = token,
+                bio = userDto.bio ?: "BJJ Athlete studying English for international tournaments.",
+                city = userDto.city ?: "Rio de Janeiro",
+                country = userDto.country ?: "Brazil",
+                nativeLanguage = userDto.nativeLanguage ?: "Portuguese",
+                studiedLanguages = userDto.studiedLanguages ?: "English",
+                learningGoals = userDto.learningGoals ?: "Fluent English for Teaching Seminars",
+                instagram = userDto.instagram ?: "jiuspeak",
+                youtube = userDto.youtube ?: "jiuspeak_channel",
+                facebook = userDto.facebook ?: "jiuspeakofficial",
+                website = userDto.website ?: "www.jiuspeak.com.br",
+                coverPhoto = userDto.coverPhoto ?: "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600",
+                isVerified = userDto.isVerified ?: true,
+                followersCount = userDto.followersCount ?: 1420,
+                followingCount = userDto.followingCount ?: 523
             )
             userDao.insertProfile(entity)
             Result.success(entity)

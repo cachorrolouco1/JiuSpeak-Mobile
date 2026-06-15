@@ -163,6 +163,154 @@ fun PerfilScreen(viewModel: JiuSpeakViewModel) {
             }
         }
 
+        // ADVANCED SOCIAL PROFILE SECTION
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            border = BorderStroke(1.dp, NeonBlue.copy(alpha = 0.3f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                // Header with Username & Verification badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "SOCIAL CREDENTIALS",
+                        color = NeonCyan,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 1.sp,
+                    )
+                    if (currentProfile.isVerified) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Verified Athlete",
+                            tint = NeonCyan,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "VERIFIED ATHLETE",
+                            color = NeonCyan,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Bio
+                Text(
+                    text = currentProfile.bio,
+                    color = FontPrimary,
+                    fontSize = 13.sp,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                HorizontalDivider(color = DarkCard, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Followers / Following Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "${currentProfile.followersCount} ",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = "Followers",
+                            color = FontSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "${currentProfile.followingCount} ",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = "Following",
+                            color = FontSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = DarkCard, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Advanced fields list
+                val infoFields = listOf(
+                    Triple(Icons.Default.Place, "Location", "${currentProfile.city}, ${currentProfile.country}"),
+                    Triple(Icons.Default.Language, "Native / Studied", "${currentProfile.nativeLanguage} ➔ ${currentProfile.studiedLanguages}"),
+                    Triple(Icons.Default.Star, "Learning Goal", currentProfile.learningGoals),
+                    Triple(Icons.Default.Info, "Official Site", currentProfile.website)
+                )
+
+                infoFields.forEach { (icon, label, value) ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = label,
+                            tint = NeonBlue,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(label.uppercase(), color = FontSecondary, fontSize = 8.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace)
+                            Text(value, color = FontPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = DarkCard, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Social Links
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceAround
+                ) {
+                    val socials = listOf(
+                        Pair("Instagram", currentProfile.instagram),
+                        Pair("YouTube", currentProfile.youtube),
+                        Pair("Facebook", currentProfile.facebook)
+                    )
+                    socials.forEach { (platform, nick) ->
+                        Text(
+                            text = "🔗 $platform: @$nick",
+                            color = NeonCyan,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.clickable { viewModel.addLog("Navigating to $platform profile @$nick") }
+                        )
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
 
         // ACHIEVEMENT MEDALS BOX
