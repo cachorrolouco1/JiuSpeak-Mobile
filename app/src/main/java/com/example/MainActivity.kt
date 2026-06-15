@@ -130,6 +130,7 @@ fun MainScaffoldLayout(viewModel: JiuSpeakViewModel) {
                             "SETTINGS" -> SettingsScreen(viewModel = viewModel)
                             "SHOP" -> ShopScreen(viewModel = viewModel)
                             "MARKETPLACE" -> MarketplaceScreen(viewModel = viewModel)
+                            "LEADERBOARD" -> LeaderboardScreen(viewModel = viewModel)
                             else -> HomeScreen(viewModel = viewModel)
                         }
                     }

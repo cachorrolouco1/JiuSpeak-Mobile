@@ -35,6 +35,47 @@ data class TeacherDto(val id: String, val name: String, val belt: String, val ra
 data class TokenRefreshRequest(val refreshToken: String)
 data class TokenRefreshResponse(val token: String, val refreshToken: String)
 
+data class LeaderboardDto(
+    val userId: String,
+    val username: String,
+    val avatar: String,
+    val belt: String,
+    val xp: Int,
+    val wins: Int,
+    val losses: Int,
+    val rankPosition: Int
+)
+
+data class WalletTransactionDto(
+    val id: String,
+    val amount: Int,
+    val type: String, // "CREDIT", "DEBIT"
+    val description: String,
+    val date: String
+)
+
+data class WalletDto(
+    val balance: Int,
+    val jiuTickets: Int,
+    val transactions: List<WalletTransactionDto>
+)
+
+data class SubscriptionPlanDto(
+    val id: String,
+    val name: String,
+    val price: Double,
+    val benefits: List<String>
+)
+
+data class UserSubscriptionStateDto(
+    val planName: String,
+    val price: Double,
+    val benefits: List<String>,
+    val status: String,
+    val renewalDate: String,
+    val expirationDate: String
+)
+
 interface JiuSpeakApi {
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
@@ -74,6 +115,15 @@ interface JiuSpeakApi {
 
     @GET("api/marketplace/teachers")
     suspend fun getTeachers(@Header("Authorization") token: String): List<TeacherDto>
+
+    @GET("api/pvp/leaderboard")
+    suspend fun getLeaderboard(@Header("Authorization") token: String): List<LeaderboardDto>
+
+    @GET("api/finance/wallet")
+    suspend fun getWallet(@Header("Authorization") token: String): WalletDto
+
+    @GET("api/subscriptions/plans")
+    suspend fun getSubscriptionPlans(@Header("Authorization") token: String): List<SubscriptionPlanDto>
 }
 
 object JiuSpeakApiClient {

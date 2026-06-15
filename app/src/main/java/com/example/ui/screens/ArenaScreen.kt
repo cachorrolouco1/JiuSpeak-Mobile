@@ -189,15 +189,28 @@ fun ArenaIdleView(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // HISTORIC COMBAT STATS
-        Text(
-            text = "RECENT COMBAT HISTORY",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Black,
-            color = NeonBlue,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        // HISTORIC COMBAT STATS ROW WITH NAVLINK TO RANKING
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "RECENT COMBAT HISTORY",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                color = NeonBlue,
+                letterSpacing = 1.sp
+            )
+            Text(
+                text = "VER RANKING GERAL ➔",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = NeonCyan,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.clickable { viewModel.navigateTo("LEADERBOARD") }
+            )
+        }
 
         if (battlesHistory.isEmpty()) {
             Box(

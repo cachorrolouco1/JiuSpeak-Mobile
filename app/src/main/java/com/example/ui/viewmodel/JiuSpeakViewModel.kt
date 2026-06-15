@@ -6,12 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.JiuSpeakDatabase
 import com.example.data.model.*
 import com.example.data.repository.JiuSpeakRepository
+import com.example.data.network.SocketManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-class JiuSpeakViewModel(application: Application, private val repository: JiuSpeakRepository) : AndroidViewModel(application) {
+class JiuSpeakViewModel(application: Application, val repository: JiuSpeakRepository) : AndroidViewModel(application) {
 
     // Bottom Navigation Bar States: HOME, ARENA, COMUNIDADE, APRENDER, PERFIL, CHAT, SETTINGS, LEADERBOARD, SHOP, MARKETPLACE
     private val _activeTab = MutableStateFlow("HOME")
@@ -73,6 +74,66 @@ class JiuSpeakViewModel(application: Application, private val repository: JiuSpe
         viewModelScope.launch {
             repository.seedMockDataIfEmpty()
         }
+
+        // Setup real Socket.IO event listener flows
+        viewModelScope.launch {
+            SocketManager.globalChatMessages.filterNotNull().collect { obj ->
+                val senderName = obj.optString("username", "System")
+                val text = obj.optString("text", "")
+                val belt = obj.optString("belt", "WHITE")
+                addLog("Message received from Socket.IO client: $senderName -> $text")
+                repository.writeChatMessage(text) // Store message locally in Room database replica
+            }
+        }
+
+        viewModelScope.launch {
+            SocketManager.pvpMatches.filterNotNull().collect { obj ->
+                val opponentName = obj.optString("opponentName", "Alex_Gracie")
+                val matchType = obj.optString("matchType", "Vocabulary")
+                addLog("PvP Matchmaker Found opponent! Name: $opponentName")
+                _pvpMatchState.value = PvpMatchState.InteractiveFight(
+                    opponentName = opponentName,
+                    matchType = matchType,
+                    questions = generateMockArenaQuestions(matchType),
+                    currentQuestionIndex = 0,
+                    opponentScore = 0,
+                    myScore = 0
+                )
+            }
+        }
+
+        viewModelScope.launch {
+            SocketManager.pvpInvites.filterNotNull().collect { obj ->
+                val challenger = obj.optString("host", "charles_gracie")
+                val matchType = obj.optString("matchType", "Vocabulary")
+                addLog("Private PvP invite from $challenger for $matchType match")
+                val notification = MockNotification(
+                    id = UUID.randomUUID().toString(),
+                    title = "⚔️ DESAFIO ARENA PvP",
+                    body = "$challenger convidou você para luta de $matchType!",
+                    time = "Just now"
+                )
+                _activePushAlerts.value = _activePushAlerts.value + notification
+            }
+        }
+
+        viewModelScope.launch {
+            SocketManager.notifications.filterNotNull().collect { obj ->
+                val title = obj.optString("title", "JiuSpeak Info")
+                val body = obj.optString("body", "Nova atualização disponível!")
+                val notification = MockNotification(
+                    id = UUID.randomUUID().toString(),
+                    title = title,
+                    body = body,
+                    time = "Just now"
+                )
+                _activePushAlerts.value = _activePushAlerts.value + notification
+            }
+        }
+
+        if (repository.isLoggedIn) {
+            SocketManager.connect(repository.apiBaseUrl, repository.currentToken)
+        }
     }
 
     // Navigation trigger
@@ -100,6 +161,7 @@ class JiuSpeakViewModel(application: Application, private val repository: JiuSpe
             if (res.isSuccess) {
                 _isLoggedIn.value = true
                 addLog("Login complete. Token received and cached. Sincronização e Sessão Ativa.")
+                SocketManager.connect(repository.apiBaseUrl, repository.currentToken)
             } else {
                 _authError.value = res.exceptionOrNull()?.localizedMessage ?: "Invalid login credentials."
                 addLog("ERROR: Login failed - ${_authError.value}")
@@ -115,6 +177,7 @@ class JiuSpeakViewModel(application: Application, private val repository: JiuSpe
             if (res.isSuccess) {
                 _isLoggedIn.value = true
                 addLog("Registration successful. Athlete enrolled securely in database structure!")
+                SocketManager.connect(repository.apiBaseUrl, repository.currentToken)
             } else {
                 _authError.value = res.exceptionOrNull()?.localizedMessage ?: "Registration error."
                 addLog("ERROR: Registry failed - ${_authError.value}")
@@ -132,6 +195,7 @@ class JiuSpeakViewModel(application: Application, private val repository: JiuSpe
 
     fun logout() {
         viewModelScope.launch {
+            SocketManager.disconnect()
             repository.logout()
             _isLoggedIn.value = false
             navigateTo("HOME")
