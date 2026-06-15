@@ -30,7 +30,7 @@ import com.example.ui.widgets.GlowButton
 fun SettingsScreen(viewModel: JiuSpeakViewModel) {
     val syncLogs by viewModel.syncLogs.collectAsState()
     var editBaseUrl by remember { mutableStateOf(JiuSpeakApiClient.getBaseUrl()) }
-    var mockOfflineToggle by remember { mutableStateOf(true) }
+    var mockOfflineToggle by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier

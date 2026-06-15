@@ -79,7 +79,7 @@ interface JiuSpeakApi {
 object JiuSpeakApiClient {
     private var currentRetrofit: Retrofit? = null
     private var currentApi: JiuSpeakApi? = null
-    private var configuredBaseUrl = "http://10.0.2.2:3000/" // Default local emulator connection loop
+    private var configuredBaseUrl = ApiConfig.productionBaseUrl // Use production environment by default
 
     fun configure(baseUrl: String) {
         var formattedUrl = baseUrl.trim()

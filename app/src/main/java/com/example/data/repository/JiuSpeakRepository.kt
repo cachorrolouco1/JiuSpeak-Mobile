@@ -27,10 +27,10 @@ class JiuSpeakRepository(
 
     // Configuration keys
     val apiBaseUrl: String
-        get() = prefs.getString("api_url", "http://10.0.2.2:3000/") ?: "http://10.0.2.2:3000/"
+        get() = prefs.getString("api_url", com.example.data.network.ApiConfig.productionBaseUrl) ?: com.example.data.network.ApiConfig.productionBaseUrl
 
     val isOfflineMode: Boolean
-        get() = prefs.getBoolean("is_offline_mode", true) // Default true for smooth local playability
+        get() = prefs.getBoolean("is_offline_mode", false) // Default false to integrate real production API immediately
 
     val isLoggedIn: Boolean
         get() = prefs.getString("auth_token", null) != null
