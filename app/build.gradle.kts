@@ -119,3 +119,15 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
 }
+
+tasks.register<Copy>("copyApkToReleases") {
+  from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+  into(File(project.rootDir, "releases"))
+}
+
+tasks.configureEach {
+  if (name == "assembleDebug") {
+    finalizedBy("copyApkToReleases")
+  }
+}
+
