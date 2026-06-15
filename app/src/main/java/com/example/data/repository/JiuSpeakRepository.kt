@@ -228,6 +228,24 @@ class JiuSpeakRepository(
 
     // Network & Sync logic with full offline fallbacks (to support local emulator playground)
 
+    suspend fun loginOffline() = withContext(Dispatchers.IO) {
+        prefs.edit().putString("auth_token", "demo_token").apply()
+        val profile = userDao.getProfileDirect()
+        if (profile == null) {
+            userDao.insertProfile(UserProfileEntity(
+                email = "offline-champion@jiuspeak.com",
+                username = "ChampionOffline",
+                beltColor = "BLUE",
+                level = 1,
+                xp = 120,
+                xpNextLevel = 1000,
+                dailyStreak = 3,
+                jiuTickets = 1500,
+                activeToken = "demo_token"
+            ))
+        }
+    }
+
     suspend fun login(email: String, prepopulatedPass: String): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
         try {
             val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")

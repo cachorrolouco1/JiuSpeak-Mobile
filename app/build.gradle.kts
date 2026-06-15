@@ -127,6 +127,7 @@ val buildDirFile = layout.buildDirectory.get().asFile
 
 tasks.register("copyApkToReleases") {
   val targetFile = File(rootDirFile, "releases/app-debug.apk")
+  val targetFileCustom = File(rootDirFile, "releases/jiuspeakmobilev1.0.0.apk")
   val sourceFile = File(buildDirFile, "outputs/apk/debug/app-debug.apk")
   
   doLast {
@@ -137,6 +138,9 @@ tasks.register("copyApkToReleases") {
       }
       sourceFile.copyTo(targetFile, overwrite = true)
       logger.lifecycle("--- COPY APK SUCCESS: ${sourceFile.length()} bytes copied to releases/app-debug.apk ---")
+      
+      sourceFile.copyTo(targetFileCustom, overwrite = true)
+      logger.lifecycle("--- COPY CUSTOM APK SUCCESS: ${sourceFile.length()} bytes copied to releases/jiuspeakmobilev1.0.0.apk ---")
     } else {
       logger.error("--- COPY APK ERROR: Source APK file NOT found at: ${sourceFile.absolutePath} ---")
     }
