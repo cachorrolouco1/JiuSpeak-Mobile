@@ -245,7 +245,11 @@ interface JiuSpeakApi {
 object JiuSpeakApiClient {
     private var currentRetrofit: Retrofit? = null
     private var currentApi: JiuSpeakApi? = null
+    private var okHttpClient: OkHttpClient? = null
     private var configuredBaseUrl = ApiConfig.productionBaseUrl // Use production environment by default
+    
+    private val cookieJar = InMemoryCookieJar()
+    private var detectedCsrfToken: String? = null
 
     fun configure(baseUrl: String) {
         var formattedUrl = baseUrl.trim()
@@ -265,6 +269,29 @@ object JiuSpeakApiClient {
 
     fun getBaseUrl(): String = configuredBaseUrl
 
+    fun getOkHttpClient(): OkHttpClient? {
+        if (okHttpClient == null) {
+            buildClient()
+        }
+        return okHttpClient
+    }
+
+    suspend fun ensureCsrf() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            val client = getOkHttpClient() ?: return@withContext
+            val request = okhttp3.Request.Builder()
+                .url(configuredBaseUrl)
+                .get()
+                .build()
+            client.newCall(request).execute().use { response ->
+                println("Ensure CSRF Warm Up status: ${response.code}")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            println("CSRF Warm Up Error: ${e.message}")
+        }
+    }
+
     private fun buildClient() {
         try {
             val logging = HttpLoggingInterceptor().apply {
@@ -274,13 +301,39 @@ object JiuSpeakApiClient {
             val client = OkHttpClient.Builder()
                 .connectTimeout(5, TimeUnit.SECONDS)
                 .readTimeout(5, TimeUnit.SECONDS)
+                .cookieJar(cookieJar)
                 .addInterceptor(logging)
                 .addInterceptor(object : Interceptor {
                     override fun intercept(chain: Interceptor.Chain): Response {
-                        val request = chain.request().newBuilder()
+                        val originalRequest = chain.request()
+                        val requestBuilder = originalRequest.newBuilder()
                             .header("Accept", "application/json")
                             .header("Content-Type", "application/json")
-                            .build()
+
+                        // 1. Inject detected CSRF token to headers if available
+                        detectedCsrfToken?.let { token ->
+                            requestBuilder.header("X-XSRF-TOKEN", token)
+                            requestBuilder.header("X-CSRF-TOKEN", token)
+                        }
+
+                        // 2. Scan active cookies for CSRF/XSRF token and inject if found
+                        val url = originalRequest.url
+                        val savedCookies = cookieJar.loadForRequest(url)
+                        val csrfCookie = savedCookies.find { 
+                            it.name.contains("csrf", ignoreCase = true) || 
+                            it.name.contains("xsrf", ignoreCase = true) 
+                        }
+                        csrfCookie?.let { cookie ->
+                            val decodedValue = try {
+                                java.net.URLDecoder.decode(cookie.value, "UTF-8")
+                            } catch (e: Exception) {
+                                cookie.value
+                            }
+                            requestBuilder.header("X-XSRF-TOKEN", decodedValue)
+                            requestBuilder.header("X-CSRF-TOKEN", decodedValue)
+                        }
+
+                        val request = requestBuilder.build()
 
                         // Explicitly log request headers and body details
                         println("=== JIUSPEAK API REQUEST START ===")
@@ -303,6 +356,33 @@ object JiuSpeakApiClient {
 
                         val response = chain.proceed(request)
 
+                        // 3. Inspect response header or set-cookie headers for fresh CSRF token
+                        val csrfHeader = response.header("X-XSRF-TOKEN") 
+                            ?: response.header("X-CSRF-TOKEN")
+                            ?: response.header("x-csrf-token")
+                            ?: response.header("x-xsrf-token")
+                        if (csrfHeader != null && csrfHeader.isNotBlank()) {
+                            detectedCsrfToken = csrfHeader
+                            println("Fresh CSRF Token header: $csrfHeader")
+                        }
+
+                        val setCookieHeaders = response.headers("Set-Cookie")
+                        for (header in setCookieHeaders) {
+                            try {
+                                val cookie = okhttp3.Cookie.parse(url, header)
+                                if (cookie != null && (
+                                    cookie.name.contains("csrf", ignoreCase = true) || 
+                                    cookie.name.contains("xsrf", ignoreCase = true)
+                                )) {
+                                    val decodedValue = java.net.URLDecoder.decode(cookie.value, "UTF-8")
+                                    detectedCsrfToken = decodedValue
+                                    println("Fresh CSRF Token cookie: ${cookie.name}=$decodedValue")
+                                }
+                            } catch (e: Exception) {
+                                // Ignore parsing errors
+                            }
+                        }
+
                         // Explicitly log response status code, headers and body details
                         println("=== JIUSPEAK API RESPONSE START ===")
                         println("HTTP CODE: ${response.code}")
@@ -323,6 +403,8 @@ object JiuSpeakApiClient {
                 })
                 .build()
 
+            okHttpClient = client
+
             currentRetrofit = Retrofit.Builder()
                 .baseUrl(configuredBaseUrl)
                 .client(client)
@@ -334,5 +416,24 @@ object JiuSpeakApiClient {
             e.printStackTrace()
             currentApi = null
         }
+    }
+}
+
+class InMemoryCookieJar : okhttp3.CookieJar {
+    private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, List<okhttp3.Cookie>>()
+
+    override fun saveFromResponse(url: okhttp3.HttpUrl, cookies: List<okhttp3.Cookie>) {
+        val host = url.host
+        val current = cookieStore[host]?.toMutableList() ?: mutableListOf()
+        cookies.forEach { newCookie ->
+            current.removeAll { it.name == newCookie.name }
+            current.add(newCookie)
+        }
+        cookieStore[host] = current
+    }
+
+    override fun loadForRequest(url: okhttp3.HttpUrl): List<okhttp3.Cookie> {
+        val host = url.host
+        return cookieStore[host] ?: emptyList()
     }
 }

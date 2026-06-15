@@ -248,6 +248,7 @@ class JiuSpeakRepository(
 
     suspend fun login(email: String, prepopulatedPass: String): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
         try {
+            JiuSpeakApiClient.ensureCsrf()
             val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
             val response = api.login(LoginRequest(email, prepopulatedPass))
             prefs.edit().putString("auth_token", response.token).apply()
@@ -272,6 +273,7 @@ class JiuSpeakRepository(
 
     suspend fun register(email: String, username: String, pass: String, belt: String): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
         try {
+            JiuSpeakApiClient.ensureCsrf()
             val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
             val response = api.register(RegisterRequest(email, username, pass, belt))
             prefs.edit().putString("auth_token", response.token).apply()
