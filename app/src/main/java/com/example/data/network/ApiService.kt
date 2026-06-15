@@ -1,18 +1,24 @@
 package com.example.data.network
 
+import com.google.gson.annotations.SerializedName
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.converter.moshi.MoshiConverterFactory
+import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
 import java.util.concurrent.TimeUnit
 
 // API Payload Models
 data class LoginRequest(val email: String, val password: String)
 data class RegisterRequest(val email: String, val username: String, val password: String, val beltColor: String)
-data class AuthResponse(val token: String, val refreshToken: String, val user: UserProfileDto)
+data class AuthResponse(
+    @SerializedName("accessToken", alternate = ["token"])
+    val token: String,
+    val refreshToken: String,
+    val user: UserProfileDto
+)
 data class UserProfileDto(
     val id: String,
     val username: String,
@@ -285,7 +291,7 @@ object JiuSpeakApiClient {
             currentRetrofit = Retrofit.Builder()
                 .baseUrl(configuredBaseUrl)
                 .client(client)
-                .addConverterFactory(MoshiConverterFactory.create())
+                .addConverterFactory(GsonConverterFactory.create())
                 .build()
 
             currentApi = currentRetrofit?.create(JiuSpeakApi::class.java)
