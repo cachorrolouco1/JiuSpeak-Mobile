@@ -43,12 +43,12 @@ class JiuSpeakRepository(
         get() = prefs.getString("auth_token", null)
 
     init {
-        JiuSpeakApiClient.configure(apiBaseUrl)
+        JiuSpeakApiClient.configure(apiBaseUrl, context)
     }
 
     suspend fun setApiUrl(url: String) {
         prefs.edit().putString("api_url", url).apply()
-        JiuSpeakApiClient.configure(url)
+        JiuSpeakApiClient.configure(url, context)
     }
 
     suspend fun setOfflineMode(enabled: Boolean) {

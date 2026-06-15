@@ -1,5 +1,6 @@
 package com.example.data.network
 
+import android.content.Context
 import com.google.gson.annotations.SerializedName
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
@@ -262,15 +263,20 @@ object JiuSpeakApiClient {
     private var okHttpClient: OkHttpClient? = null
     private var configuredBaseUrl = ApiConfig.productionBaseUrl // Use production environment by default
     
-    private val cookieJar = InMemoryCookieJar()
+    private var appContext: android.content.Context? = null
+    private var cookieJar: okhttp3.CookieJar = InMemoryCookieJar()
     private var detectedCsrfToken: String? = null
 
-    fun configure(baseUrl: String) {
+    fun configure(baseUrl: String, context: android.content.Context? = null) {
         var formattedUrl = baseUrl.trim()
         if (!formattedUrl.endsWith("/")) {
             formattedUrl += "/"
         }
         configuredBaseUrl = formattedUrl
+        if (context != null) {
+            appContext = context.applicationContext
+            cookieJar = PersistentCookieJar(context.applicationContext)
+        }
         buildClient()
     }
 
@@ -293,12 +299,32 @@ object JiuSpeakApiClient {
     suspend fun ensureCsrf() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         try {
             val client = getOkHttpClient() ?: return@withContext
+            val csrfUrl = if (configuredBaseUrl.endsWith("/")) {
+                "${configuredBaseUrl}api/csrf-token"
+            } else {
+                "${configuredBaseUrl}/api/csrf-token"
+            }
+            println("CSRF Request Warm Up URL: $csrfUrl")
             val request = okhttp3.Request.Builder()
-                .url(configuredBaseUrl)
+                .url(csrfUrl)
                 .get()
                 .build()
             client.newCall(request).execute().use { response ->
-                println("Ensure CSRF Warm Up status: ${response.code}")
+                println("Ensure CSRF response code: ${response.code}")
+                val bodyText = response.body?.string() ?: ""
+                println("Ensure CSRF response body: $bodyText")
+                if (response.isSuccessful && bodyText.isNotEmpty()) {
+                    try {
+                        val json = com.google.gson.JsonParser.parseString(bodyText).asJsonObject
+                        val csrfToken = json.get("csrfToken")?.asString
+                        if (csrfToken != null && csrfToken.isNotBlank()) {
+                            detectedCsrfToken = csrfToken
+                            println("Parsed CSRF token successfully: $csrfToken")
+                        }
+                    } catch (e: Exception) {
+                        println("Failed to parse CSRF json response: ${e.message}")
+                    }
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -313,8 +339,8 @@ object JiuSpeakApiClient {
             }
 
             val client = OkHttpClient.Builder()
-                .connectTimeout(5, TimeUnit.SECONDS)
-                .readTimeout(5, TimeUnit.SECONDS)
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(15, TimeUnit.SECONDS)
                 .cookieJar(cookieJar)
                 .addInterceptor(logging)
                 .addInterceptor(object : Interceptor {
@@ -328,6 +354,8 @@ object JiuSpeakApiClient {
                         detectedCsrfToken?.let { token ->
                             requestBuilder.header("X-XSRF-TOKEN", token)
                             requestBuilder.header("X-CSRF-TOKEN", token)
+                            requestBuilder.header("x-xsrf-token", token)
+                            requestBuilder.header("x-csrf-token", token)
                         }
 
                         // 2. Scan active cookies for CSRF/XSRF token and inject if found
@@ -345,6 +373,8 @@ object JiuSpeakApiClient {
                             }
                             requestBuilder.header("X-XSRF-TOKEN", decodedValue)
                             requestBuilder.header("X-CSRF-TOKEN", decodedValue)
+                            requestBuilder.header("x-xsrf-token", decodedValue)
+                            requestBuilder.header("x-csrf-token", decodedValue)
                         }
 
                         val request = requestBuilder.build()
@@ -449,5 +479,119 @@ class InMemoryCookieJar : okhttp3.CookieJar {
     override fun loadForRequest(url: okhttp3.HttpUrl): List<okhttp3.Cookie> {
         val host = url.host
         return cookieStore[host] ?: emptyList()
+    }
+}
+
+class PersistentCookieJar(context: android.content.Context) : okhttp3.CookieJar {
+    private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, MutableList<okhttp3.Cookie>>()
+    private val prefs = context.getSharedPreferences("jiuspeak_cookies", android.content.Context.MODE_PRIVATE)
+
+    init {
+        try {
+            prefs.all.forEach { (host, serialized) ->
+                if (serialized is String) {
+                    val cookiesList = mutableListOf<okhttp3.Cookie>()
+                    val parts = serialized.split("||")
+                    parts.forEach { part ->
+                        if (part.isNotBlank()) {
+                            val parsed = parseCookieString(host, part)
+                            if (parsed != null) {
+                                cookiesList.add(parsed)
+                            }
+                        }
+                    }
+                    cookieStore[host] = cookiesList
+                }
+            }
+        } catch (e: Exception) {
+            println("PersistentCookieJar init error: ${e.message}")
+        }
+    }
+
+    private fun parseCookieString(host: String, part: String): okhttp3.Cookie? {
+        try {
+            val segments = part.split(";")
+            var name = ""
+            var value = ""
+            var domain = host
+            var path = "/"
+            var secure = false
+            var httpOnly = false
+            var expiresAt = Long.MAX_VALUE
+
+            segments.forEach { segment ->
+                val eq = segment.indexOf('=')
+                if (eq != -1) {
+                    val k = segment.substring(0, eq).trim()
+                    val v = segment.substring(eq + 1).trim()
+                    when (k) {
+                        "domain" -> domain = v
+                        "path" -> path = v
+                        "secure" -> secure = v.toBoolean()
+                        "httpOnly" -> httpOnly = v.toBoolean()
+                        "expires" -> expiresAt = v.toLongOrNull() ?: Long.MAX_VALUE
+                        else -> {
+                            if (name.isEmpty()) {
+                                name = k
+                                value = v
+                            }
+                        }
+                    }
+                }
+            }
+            if (name.isNotEmpty()) {
+                val builder = okhttp3.Cookie.Builder()
+                    .name(name)
+                    .value(value)
+                    .domain(domain)
+                    .path(path)
+                if (secure) builder.secure()
+                if (httpOnly) builder.httpOnly()
+                if (expiresAt != Long.MAX_VALUE) builder.expiresAt(expiresAt)
+                return builder.build()
+            }
+        } catch (e: Exception) {
+            // Ignore parsing errors
+        }
+        return null
+    }
+
+    private fun serializeCookie(cookie: okhttp3.Cookie): String {
+        return "${cookie.name}=${cookie.value};domain=${cookie.domain};path=${cookie.path};secure=${cookie.secure};httpOnly=${cookie.httpOnly};expires=${cookie.expiresAt}"
+    }
+
+    override fun saveFromResponse(url: okhttp3.HttpUrl, cookies: List<okhttp3.Cookie>) {
+        val host = url.host
+        val current = cookieStore[host] ?: mutableListOf()
+        cookies.forEach { newCookie ->
+            current.removeAll { it.name == newCookie.name }
+            current.add(newCookie)
+        }
+        cookieStore[host] = current
+
+        // Persist to preferences
+        try {
+            val serialized = current.joinToString("||") { serializeCookie(it) }
+            prefs.edit().putString(host, serialized).apply()
+        } catch (e: Exception) {
+            println("PersistentCookieJar save error: ${e.message}")
+        }
+    }
+
+    override fun loadForRequest(url: okhttp3.HttpUrl): List<okhttp3.Cookie> {
+        val host = url.host
+        val originalList = cookieStore[host] ?: emptyList()
+        val now = System.currentTimeMillis()
+        val validList = originalList.filter { it.expiresAt > now }
+        if (validList.size != originalList.size) {
+            cookieStore[host] = validList.toMutableList()
+            try {
+                val serialized = validList.joinToString("||") { serializeCookie(it) }
+                prefs.edit().putString(host, serialized).apply()
+            } catch (e: Exception) {
+                // Ignore
+            }
+        }
+        return validList
     }
 }
