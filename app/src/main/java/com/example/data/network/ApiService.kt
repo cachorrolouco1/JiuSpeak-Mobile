@@ -76,6 +76,91 @@ data class UserSubscriptionStateDto(
     val expirationDate: String
 )
 
+data class SeasonRewardDto(
+    val id: String,
+    val seasonId: String,
+    val level: Int,
+    val type: String, // "AVATAR", "FRAME", "MEDAL", "JIU_TICKETS", "BOOSTER", "TITLE"
+    val name: String,
+    val isPremium: Boolean,
+    val rewardsValue: Int,
+    val isClaimed: Boolean,
+    val imageUrl: String
+)
+
+data class SeasonDto(
+    val id: String,
+    val name: String,
+    val description: String,
+    val themeColorHex: String,
+    val bannerUrl: String,
+    val startTimestamp: Long,
+    val endTimestamp: Long,
+    val maxLevel: Int,
+    val currentLevel: Int,
+    val currentXp: Int,
+    val requiredXpNextLevel: Int,
+    val hasVipPass: Boolean,
+    val hasProPass: Boolean,
+    val rewards: List<SeasonRewardDto>
+)
+
+data class ClaimRewardRequest(val rewardId: String)
+
+data class LeagueStatusDto(
+    val id: String,
+    val currentElo: Int,
+    val division: String, // "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "LEGEND"
+    val subDivision: Int,
+    val promotionGoalElo: Int,
+    val rebaixamentoThresholdElo: Int,
+    val globalRank: Int,
+    val countryRank: Int,
+    val winsCount: Int,
+    val lossesCount: Int
+)
+
+data class ClanDto(
+    val id: String,
+    val name: String,
+    val logoUrl: String,
+    val country: String,
+    val city: String,
+    val gymName: String,
+    val masterName: String,
+    val description: String,
+    val memberCount: Int,
+    val maxMembers: Int,
+    val totalXp: Int,
+    val rankPosition: Int,
+    val myRole: String // "LEADER", "CO_LEADER", "CAPTAIN", "MEMBER", "NONE"
+)
+
+data class CreateClanRequest(
+    val name: String,
+    val gymName: String,
+    val city: String,
+    val country: String,
+    val description: String
+)
+
+data class ClanWarChallengeRequest(val targetClanId: String)
+
+data class AchievementDto(
+    val id: String,
+    val title: String,
+    val description: String,
+    val category: String, // "STUDY", "PVP", "COMMUNITY", "MARKETPLACE", "SEASONS"
+    val rarity: String, // "COMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC"
+    val progress: Int,
+    val targetProgress: Int,
+    val isCompleted: Boolean,
+    val xpReward: Int,
+    val jiuTicketsReward: Int,
+    val iconUrl: String,
+    val unlockedAtTimestamp: Long?
+)
+
 interface JiuSpeakApi {
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): AuthResponse
@@ -124,6 +209,31 @@ interface JiuSpeakApi {
 
     @GET("api/subscriptions/plans")
     suspend fun getSubscriptionPlans(@Header("Authorization") token: String): List<SubscriptionPlanDto>
+
+    // === NEW V4 FEATURES ===
+    @GET("api/seasons/active")
+    suspend fun getActiveSeason(@Header("Authorization") token: String): SeasonDto
+
+    @POST("api/seasons/claim-reward")
+    suspend fun claimReward(@Header("Authorization") token: String, @Body request: ClaimRewardRequest): UserProfileDto
+
+    @GET("api/leagues/status")
+    suspend fun getLeagueStatus(@Header("Authorization") token: String): LeagueStatusDto
+
+    @GET("api/clans/all")
+    suspend fun getAllClans(@Header("Authorization") token: String): List<ClanDto>
+
+    @GET("api/clans/my-clan")
+    suspend fun getMyClan(@Header("Authorization") token: String): ClanDto
+
+    @POST("api/clans/create")
+    suspend fun createClan(@Header("Authorization") token: String, @Body request: CreateClanRequest): ClanDto
+
+    @POST("api/clans/war/challenge")
+    suspend fun challengeClanWar(@Header("Authorization") token: String, @Body request: ClanWarChallengeRequest): retrofit2.Response<Void>
+
+    @GET("api/achievements")
+    suspend fun getAchievements(@Header("Authorization") token: String): List<AchievementDto>
 }
 
 object JiuSpeakApiClient {

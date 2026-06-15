@@ -96,3 +96,81 @@ data class TeacherEntity(
     val language: String = "English",
     val imageUrl: String
 )
+
+@Entity(tableName = "seasons")
+data class SeasonEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val description: String,
+    val themeColorHex: String,
+    val bannerUrl: String,
+    val startTimestamp: Long,
+    val endTimestamp: Long,
+    val maxLevel: Int,
+    val currentLevel: Int,
+    val currentXp: Int,
+    val requiredXpNextLevel: Int,
+    val hasVipPass: Boolean,
+    val hasProPass: Boolean
+)
+
+@Entity(tableName = "season_rewards")
+data class SeasonRewardEntity(
+    @PrimaryKey val id: String,
+    val seasonId: String,
+    val level: Int,
+    val type: String, // "AVATAR", "FRAME", "MEDAL", "JIU_TICKETS", "BOOSTER", "TITLE"
+    val name: String,
+    val isPremium: Boolean, // Requere VIP ou PRO
+    val rewardsValue: Int,
+    val isClaimed: Boolean,
+    val imageUrl: String
+)
+
+@Entity(tableName = "clans")
+data class ClanEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val logoUrl: String,
+    val country: String,
+    val city: String,
+    val gymName: String,
+    val masterName: String,
+    val description: String,
+    val memberCount: Int,
+    val maxMembers: Int,
+    val totalXp: Int,
+    val rankPosition: Int,
+    val myRole: String // "LEADER", "CO_LEADER", "CAPTAIN", "MEMBER", "NONE"
+)
+
+@Entity(tableName = "league_status")
+data class LeagueEntity(
+    @PrimaryKey val id: String,
+    val currentElo: Int,
+    val division: String, // "BRONZE", "SILVER", "GOLD", "PLATINUM", "DIAMOND", "MASTER", "LEGEND"
+    val subDivision: Int, // 1, 2, 3, 4
+    val promotionGoalElo: Int,
+    val rebaixamentoThresholdElo: Int,
+    val globalRank: Int,
+    val countryRank: Int,
+    val winsCount: Int,
+    val lossesCount: Int
+)
+
+@Entity(tableName = "achievements")
+data class AchievementEntity(
+    @PrimaryKey val id: String,
+    val title: String,
+    val description: String,
+    val category: String, // "STUDY", "PVP", "COMMUNITY", "MARKETPLACE", "SEASONS"
+    val rarity: String, // "COMMON", "RARE", "EPIC", "LEGENDARY", "MYTHIC"
+    val progress: Int,
+    val targetProgress: Int,
+    val isCompleted: Boolean,
+    val xpReward: Int,
+    val jiuTicketsReward: Int,
+    val iconUrl: String,
+    val unlockedAtTimestamp: Long
+)
+

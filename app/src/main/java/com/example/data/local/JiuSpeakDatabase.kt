@@ -103,6 +103,69 @@ interface TeacherDao {
     suspend fun insertTeachers(teachers: List<TeacherEntity>)
 }
 
+@Dao
+interface SeasonDao {
+    @Query("SELECT * FROM seasons LIMIT 1")
+    fun getActiveSeason(): Flow<SeasonEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSeason(season: SeasonEntity)
+
+    @Query("SELECT * FROM season_rewards ORDER BY level ASC")
+    fun getSeasonRewards(): Flow<List<SeasonRewardEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRewards(rewards: List<SeasonRewardEntity>)
+
+    @Query("UPDATE season_rewards SET isClaimed = 1 WHERE id = :id")
+    suspend fun claimReward(id: String)
+}
+
+@Dao
+interface ClanDao {
+    @Query("SELECT * FROM clans WHERE myRole != 'NONE' LIMIT 1")
+    fun getMyClanFlow(): Flow<ClanEntity?>
+
+    @Query("SELECT * FROM clans WHERE myRole != 'NONE' LIMIT 1")
+    suspend fun getMyClanDirect(): ClanEntity?
+
+    @Query("SELECT * FROM clans ORDER BY totalXp DESC")
+    fun getAllClansFlow(): Flow<List<ClanEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertClans(clans: List<ClanEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertClan(clan: ClanEntity)
+
+    @Query("UPDATE clans SET myRole = :role WHERE id = :clanId")
+    suspend fun updateMyRole(clanId: String, role: String)
+
+    @Query("UPDATE clans SET myRole = 'NONE' WHERE myRole != 'NONE'")
+    suspend fun leaveCurrentClan()
+}
+
+@Dao
+interface LeagueDao {
+    @Query("SELECT * FROM league_status LIMIT 1")
+    fun getLeagueStatusFlow(): Flow<LeagueEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLeagueStatus(status: LeagueEntity)
+}
+
+@Dao
+interface AchievementDao {
+    @Query("SELECT * FROM achievements")
+    fun getAllAchievementsFlow(): Flow<List<AchievementEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAchievements(achievements: List<AchievementEntity>)
+
+    @Query("UPDATE achievements SET progress = :progress, isCompleted = :completed, unlockedAtTimestamp = :unlockedAt WHERE id = :id")
+    suspend fun updateAchievementProgress(id: String, progress: Int, completed: Boolean, unlockedAt: Long)
+}
+
 @Database(
     entities = [
         UserProfileEntity::class,
@@ -111,9 +174,14 @@ interface TeacherDao {
         PvpBattleEntity::class,
         ChatMessageEntity::class,
         CourseEntity::class,
-        TeacherEntity::class
+        TeacherEntity::class,
+        SeasonEntity::class,
+        SeasonRewardEntity::class,
+        ClanEntity::class,
+        LeagueEntity::class,
+        AchievementEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class JiuSpeakDatabase : RoomDatabase() {
@@ -124,4 +192,8 @@ abstract class JiuSpeakDatabase : RoomDatabase() {
     abstract fun chatDao(): ChatDao
     abstract fun courseDao(): CourseDao
     abstract fun teacherDao(): TeacherDao
+    abstract fun seasonDao(): SeasonDao
+    abstract fun clanDao(): ClanDao
+    abstract fun leagueDao(): LeagueDao
+    abstract fun achievementDao(): AchievementDao
 }

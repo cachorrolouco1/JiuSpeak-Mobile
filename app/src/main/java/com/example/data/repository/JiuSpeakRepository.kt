@@ -24,6 +24,10 @@ class JiuSpeakRepository(
     private val chatDao = database.chatDao()
     private val courseDao = database.courseDao()
     private val teacherDao = database.teacherDao()
+    private val seasonDao = database.seasonDao()
+    private val clanDao = database.clanDao()
+    private val leagueDao = database.leagueDao()
+    private val achievementDao = database.achievementDao()
 
     // Configuration keys
     val apiBaseUrl: String
@@ -59,6 +63,12 @@ class JiuSpeakRepository(
     val chatMessagesFlow: Flow<List<ChatMessageEntity>> = chatDao.getAllMessages()
     val coursesFlow: Flow<List<CourseEntity>> = courseDao.getAllCourses()
     val teachersFlow: Flow<List<TeacherEntity>> = teacherDao.getAllTeachers()
+    val activeSeasonFlow: Flow<SeasonEntity?> = seasonDao.getActiveSeason()
+    val seasonRewardsFlow: Flow<List<SeasonRewardEntity>> = seasonDao.getSeasonRewards()
+    val myClanFlow: Flow<ClanEntity?> = clanDao.getMyClanFlow()
+    val allClansFlow: Flow<List<ClanEntity>> = clanDao.getAllClansFlow()
+    val leagueStatusFlow: Flow<LeagueEntity?> = leagueDao.getLeagueStatusFlow()
+    val achievementsFlow: Flow<List<AchievementEntity>> = achievementDao.getAllAchievementsFlow()
 
     // Core Business Operations
 
@@ -141,6 +151,77 @@ class JiuSpeakRepository(
                 chatDao.insertMessage(ChatMessageEntity(0, "system", "SYSTEM", "WHITE", "Welcome to JiuSpeak Global Chat! Talk to fellow BJJ athletes studying languages. ⚔️🥋", System.currentTimeMillis() - 1000 * 60 * 10))
                 chatDao.insertMessage(ChatMessageEntity(0, "u1", "MarcusBJJ", "BLUE", "E aí galera! Quem quer treinar pronúncia na Arena hoje?", System.currentTimeMillis() - 1000 * 60 * 5))
                 chatDao.insertMessage(ChatMessageEntity(0, "u2", "Sensei_Arthur", "BLACK", "Estudar inglês salvou meus seminários na Europa. Mandem ver nos treinos!", System.currentTimeMillis() - 1000 * 60 * 2))
+            }
+
+            // Seed Active Season Pass
+            val activeSeason = seasonDao.getActiveSeason().firstOrNull()
+            if (activeSeason == null) {
+                seasonDao.insertSeason(
+                    SeasonEntity(
+                        id = "season_v4",
+                        name = "Road To Blue Belt",
+                        description = "Trilha oficial para dominar o inglês e o tatame! Complete missões e vença na Arena para resgatar recompensas especiais.",
+                        themeColorHex = "#009DFF",
+                        bannerUrl = "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600",
+                        startTimestamp = System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 5, // started 5 days ago
+                        endTimestamp = System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 25, // ends in 25 days
+                        maxLevel = 5,
+                        currentLevel = 1,
+                        currentXp = 250,
+                        requiredXpNextLevel = 1000,
+                        hasVipPass = true,
+                        hasProPass = false
+                    )
+                )
+
+                seasonDao.insertRewards(listOf(
+                    SeasonRewardEntity("r1", "season_v4", 1, "JIU_TICKETS", "100 JiuTickets", false, 100, true, "ic_tickets"),
+                    SeasonRewardEntity("r2", "season_v4", 2, "FRAME", "Moldura Neon Blue", false, 0, false, "frame_neon"),
+                    SeasonRewardEntity("r3", "season_v4", 3, "BOOSTER", "XP Booster +50%", true, 1, false, "ic_booster"),
+                    SeasonRewardEntity("r4", "season_v4", 4, "AVATAR", "Avatar Guerreiro de Bronze", false, 0, false, "avatar_fighter3"),
+                    SeasonRewardEntity("r5", "season_v4", 5, "TITLE", "Título 'Gladiador de Oxford'", true, 0, false, "ic_title")
+                ))
+            }
+
+            // Seed Clans (Equipes)
+            val existingClans = clanDao.getAllClansFlow().firstOrNull() ?: emptyList()
+            if (existingClans.isEmpty()) {
+                clanDao.insertClans(listOf(
+                    ClanEntity("clan_1", "Gracie Barra Headquarter", "https://logo.png", "Brazil", "Rio de Janeiro", "Gracie Barra Headquarter", "Mestre Carlos Gracie Jr", "A maior equipe de Jiu-Jitsu do mundo, unida no tatame e no inglês!", 15, 30, 48500, 1, "MEMBER"),
+                    ClanEntity("clan_2", "Alliance Global", "https://logo.png", "USA", "New York", "Alliance NY", "Mestre Fabio Gurgel", "Multacampeões mundiais focados na excelência e conversação internacional.", 12, 30, 42000, 2, "NONE"),
+                    ClanEntity("clan_3", "Atos Jiu-Jitsu Arena", "https://logo.png", "USA", "San Diego", "Atos HQ", "Mestre André Galvão", "Modernidade, explosão e estudo diário do vocabulário competitivo.", 8, 25, 35000, 3, "NONE")
+                ))
+            }
+
+            // Seed League ELO Status
+            val leagueStatus = leagueDao.getLeagueStatusFlow().firstOrNull()
+            if (leagueStatus == null) {
+                leagueDao.insertLeagueStatus(
+                    LeagueEntity(
+                        id = "league_state",
+                        currentElo = 1350,
+                        division = "SILVER",
+                        subDivision = 2,
+                        promotionGoalElo = 1500,
+                        rebaixamentoThresholdElo = 1200,
+                        globalRank = 422,
+                        countryRank = 154,
+                        winsCount = 28,
+                        lossesCount = 12
+                    )
+                )
+            }
+
+            // Seed Achievements (Conquistas)
+            val existingAchievements = achievementDao.getAllAchievementsFlow().firstOrNull() ?: emptyList()
+            if (existingAchievements.isEmpty()) {
+                achievementDao.insertAchievements(listOf(
+                    AchievementEntity("ach1", "Primeira Vitória", "Vença seu primeiro sparring PvP na Arena de Vocabulário", "PVP", "COMMON", 1, 1, true, 50, 10, "ic_medal_1", System.currentTimeMillis() - 1000 * 60 * 60 * 12),
+                    AchievementEntity("ach2", "Guerreiro Consistente", "Complete missões diárias por 7 dias consecutivos", "STUDY", "RARE", 4, 7, false, 250, 50, "ic_medal_2", 0L),
+                    AchievementEntity("ach3", "Dominador da Fala", "Complete 10 lições de conversação com pronúncia excelente", "STUDY", "EPIC", 8, 10, false, 500, 100, "ic_medal_3", 0L),
+                    AchievementEntity("ach4", "Campeão de Oxford", "Alcance a Divisão Ouro na Liga Mundial de ELO", "PVP", "LEGENDARY", 1350, 2000, false, 1000, 250, "ic_medal_4", 0L),
+                    AchievementEntity("ach5", "Mentor Favorito", "Contrate 5 mentorias premium no marketplace", "MARKETPLACE", "MYTHIC", 2, 5, false, 1500, 500, "ic_medal_5", 0L)
+                ))
             }
         }
     }
@@ -406,6 +487,244 @@ class JiuSpeakRepository(
     suspend fun updateAvatar(avatar: String, frameColor: String) = withContext(Dispatchers.IO) {
         val profile = userDao.getProfileDirect() ?: return@withContext
         userDao.insertProfile(profile.copy(selectedAvatar = avatar, selectedFrameColor = frameColor))
+    }
+
+    suspend fun syncActiveSeason(): Result<SeasonEntity> = withContext(Dispatchers.IO) {
+        try {
+            val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
+            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
+                val current = seasonDao.getActiveSeason().firstOrNull() ?: throw Exception("Offline mode")
+                return@withContext Result.success(current)
+            }
+            val dto = JiuSpeakApiClient.getApi()!!.getActiveSeason("Bearer $token")
+            val seasonEntity = SeasonEntity(
+                id = dto.id,
+                name = dto.name,
+                description = dto.description,
+                themeColorHex = dto.themeColorHex,
+                bannerUrl = dto.bannerUrl,
+                startTimestamp = dto.startTimestamp,
+                endTimestamp = dto.endTimestamp,
+                maxLevel = dto.maxLevel,
+                currentLevel = dto.currentLevel,
+                currentXp = dto.currentXp,
+                requiredXpNextLevel = dto.requiredXpNextLevel,
+                hasVipPass = dto.hasVipPass,
+                hasProPass = dto.hasProPass
+            )
+            seasonDao.insertSeason(seasonEntity)
+            
+            val rewardEntities = dto.rewards.map {
+                SeasonRewardEntity(
+                    id = it.id,
+                    seasonId = it.seasonId,
+                    level = it.level,
+                    type = it.type,
+                    name = it.name,
+                    isPremium = it.isPremium,
+                    rewardsValue = it.rewardsValue,
+                    isClaimed = it.isClaimed,
+                    imageUrl = it.imageUrl
+                )
+            }
+            seasonDao.insertRewards(rewardEntities)
+            Result.success(seasonEntity)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun claimSeasonReward(rewardId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            // Update local Room database immediately (Offline-first)
+            seasonDao.claimReward(rewardId)
+            
+            val token = currentToken
+            if (!isOfflineMode && token != null && JiuSpeakApiClient.getApi() != null) {
+                try {
+                    val profileDto = JiuSpeakApiClient.getApi()!!.claimReward("Bearer $token", ClaimRewardRequest(rewardId))
+                    // Update user profile with rewards updated
+                    val entity = UserProfileEntity(
+                        email = profileDto.email,
+                        username = profileDto.username,
+                        beltColor = profileDto.beltColor,
+                        level = profileDto.level,
+                        xp = profileDto.xp,
+                        xpNextLevel = profileDto.xpNextLevel,
+                        dailyStreak = profileDto.dailyStreak,
+                        jiuTickets = profileDto.jiuTickets,
+                        activeToken = token
+                    )
+                    userDao.insertProfile(entity)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun syncLeagueStatus(): Result<LeagueEntity> = withContext(Dispatchers.IO) {
+        try {
+            val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
+            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
+                val current = leagueDao.getLeagueStatusFlow().firstOrNull() ?: throw Exception("Offline mode")
+                return@withContext Result.success(current)
+            }
+            val dto = JiuSpeakApiClient.getApi()!!.getLeagueStatus("Bearer $token")
+            val entity = LeagueEntity(
+                id = dto.id,
+                currentElo = dto.currentElo,
+                division = dto.division,
+                subDivision = dto.subDivision,
+                promotionGoalElo = dto.promotionGoalElo,
+                rebaixamentoThresholdElo = dto.rebaixamentoThresholdElo,
+                globalRank = dto.globalRank,
+                countryRank = dto.countryRank,
+                winsCount = dto.winsCount,
+                lossesCount = dto.lossesCount
+            )
+            leagueDao.insertLeagueStatus(entity)
+            Result.success(entity)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun syncAllClans(): Result<List<ClanEntity>> = withContext(Dispatchers.IO) {
+        try {
+            val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
+            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
+                return@withContext Result.success(clanDao.getAllClansFlow().firstOrNull() ?: emptyList())
+            }
+            val dtos = JiuSpeakApiClient.getApi()!!.getAllClans("Bearer $token")
+            val entities = dtos.map {
+                ClanEntity(
+                    id = it.id,
+                    name = it.name,
+                    logoUrl = it.logoUrl,
+                    country = it.country,
+                    city = it.city,
+                    gymName = it.gymName,
+                    masterName = it.masterName,
+                    description = it.description,
+                    memberCount = it.memberCount,
+                    maxMembers = it.maxMembers,
+                    totalXp = it.totalXp,
+                    rankPosition = it.rankPosition,
+                    myRole = it.myRole
+                )
+            }
+            clanDao.insertClans(entities)
+            Result.success(entities)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createClan(name: String, gymName: String, city: String, country: String, description: String): Result<ClanEntity> = withContext(Dispatchers.IO) {
+        try {
+            val token = currentToken
+            if (isOfflineMode || token == null || JiuSpeakApiClient.getApi() == null) {
+                // Offline fallback creation
+                val newClan = ClanEntity(
+                    id = "clan_local_${System.currentTimeMillis()}",
+                    name = name,
+                    logoUrl = "https://logo.png",
+                    country = country,
+                    city = city,
+                    gymName = gymName,
+                    masterName = userDao.getProfileDirect()?.username ?: "Me",
+                    description = description,
+                    memberCount = 1,
+                    maxMembers = 30,
+                    totalXp = 100,
+                    rankPosition = 10,
+                    myRole = "LEADER"
+                )
+                clanDao.leaveCurrentClan()
+                clanDao.insertClan(newClan)
+                return@withContext Result.success(newClan)
+            }
+            val dto = JiuSpeakApiClient.getApi()!!.createClan(
+                "Bearer $token",
+                CreateClanRequest(name, gymName, city, country, description)
+            )
+            val clan = ClanEntity(
+                id = dto.id,
+                name = dto.name,
+                logoUrl = dto.logoUrl,
+                country = dto.country,
+                city = dto.city,
+                gymName = dto.gymName,
+                masterName = dto.masterName,
+                description = dto.description,
+                memberCount = dto.memberCount,
+                maxMembers = dto.maxMembers,
+                totalXp = dto.totalXp,
+                rankPosition = dto.rankPosition,
+                myRole = dto.myRole
+            )
+            clanDao.leaveCurrentClan()
+            clanDao.insertClan(clan)
+            Result.success(clan)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun joinClanLocal(clanId: String) = withContext(Dispatchers.IO) {
+        clanDao.leaveCurrentClan()
+        clanDao.updateMyRole(clanId, "MEMBER")
+    }
+
+    suspend fun challengeClanWar(targetClanId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val token = currentToken
+            if (!isOfflineMode && token != null && JiuSpeakApiClient.getApi() != null) {
+                val response = JiuSpeakApiClient.getApi()!!.challengeClanWar("Bearer $token", ClanWarChallengeRequest(targetClanId))
+                if (response.isSuccessful) {
+                    return@withContext Result.success(true)
+                } else {
+                    return@withContext Result.failure(Exception("War declaration API error"))
+                }
+            }
+            Result.success(true) // offline success
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun syncAchievements(): Result<List<AchievementEntity>> = withContext(Dispatchers.IO) {
+        try {
+            val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
+            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
+                return@withContext Result.success(achievementDao.getAllAchievementsFlow().firstOrNull() ?: emptyList())
+            }
+            val dtos = JiuSpeakApiClient.getApi()!!.getAchievements("Bearer $token")
+            val entities = dtos.map {
+                AchievementEntity(
+                    id = it.id,
+                    title = it.title,
+                    description = it.description,
+                    category = it.category,
+                    rarity = it.rarity,
+                    progress = it.progress,
+                    targetProgress = it.targetProgress,
+                    isCompleted = it.isCompleted,
+                    xpReward = it.xpReward,
+                    jiuTicketsReward = it.jiuTicketsReward,
+                    iconUrl = it.iconUrl,
+                    unlockedAtTimestamp = it.unlockedAtTimestamp ?: 0L
+                )
+            }
+            achievementDao.insertAchievements(entities)
+            Result.success(entities)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     suspend fun logout() {

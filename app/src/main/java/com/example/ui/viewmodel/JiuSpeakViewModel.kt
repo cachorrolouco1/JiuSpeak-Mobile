@@ -70,9 +70,30 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
     val teachersList: StateFlow<List<TeacherEntity>> = repository.teachersFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val activeSeason: StateFlow<SeasonEntity?> = repository.activeSeasonFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val seasonRewards: StateFlow<List<SeasonRewardEntity>> = repository.seasonRewardsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val myClan: StateFlow<ClanEntity?> = repository.myClanFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val allClans: StateFlow<List<ClanEntity>> = repository.allClansFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val leagueStatus: StateFlow<LeagueEntity?> = repository.leagueStatusFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val achievements: StateFlow<List<AchievementEntity>> = repository.achievementsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     init {
         viewModelScope.launch {
             repository.seedMockDataIfEmpty()
+            if (repository.isLoggedIn) {
+                syncAllData()
+            }
         }
 
         // Setup real Socket.IO event listener flows
@@ -162,6 +183,7 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
                 _isLoggedIn.value = true
                 addLog("Login complete. Token received and cached. Sincronização e Sessão Ativa.")
                 SocketManager.connect(repository.apiBaseUrl, repository.currentToken)
+                syncAllData()
             } else {
                 _authError.value = res.exceptionOrNull()?.localizedMessage ?: "Invalid login credentials."
                 addLog("ERROR: Login failed - ${_authError.value}")
@@ -178,6 +200,7 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
                 _isLoggedIn.value = true
                 addLog("Registration successful. Athlete enrolled securely in database structure!")
                 SocketManager.connect(repository.apiBaseUrl, repository.currentToken)
+                syncAllData()
             } else {
                 _authError.value = res.exceptionOrNull()?.localizedMessage ?: "Registration error."
                 addLog("ERROR: Registry failed - ${_authError.value}")
@@ -405,6 +428,79 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
         viewModelScope.launch {
             repository.setOfflineMode(enable)
             addLog("Simulate offline persistence toggle: $enable")
+        }
+    }
+
+    fun syncAllData() {
+        viewModelScope.launch {
+            addLog("Sincronizando conquistas, ligas, times e passe com o servidor...")
+            repository.syncActiveSeason().onSuccess {
+                addLog("Passe de Temporada '${it.name}' sincronizado.")
+            }.onFailure {
+                addLog("Sincronização offline-first do Passe de Temporada concluída.")
+            }
+            repository.syncLeagueStatus().onSuccess {
+                addLog("Liga Mundial (ELO: ${it.currentElo}) carregada do servidor!")
+            }.onFailure {
+                addLog("Sincronização offline-first da Liga de ELO concluída.")
+            }
+            repository.syncAllClans().onSuccess {
+                addLog("Clãs e Alianças atualizados do servidor (${it.size} clãs).")
+                val currentRole = it.find { c -> c.myRole != "NONE" }
+                if (currentRole != null) {
+                    addLog("Você está conectado ao clã '${currentRole.name}'.")
+                }
+            }.onFailure {
+                addLog("Sincronização offline-first de Clãs concluída.")
+            }
+            repository.syncAchievements().onSuccess {
+                addLog("Quadro de Conquistas/Medalhas sincronizado.")
+            }.onFailure {
+                addLog("Sincronização offline-first das Conquistas concluída.")
+            }
+        }
+    }
+
+    fun claimReward(rewardId: String) {
+        viewModelScope.launch {
+            addLog("Resgatando recompensa...")
+            repository.claimSeasonReward(rewardId).onSuccess {
+                addLog("Recompensa resgatada com sucesso!")
+            }.onFailure {
+                addLog("Erro ao resgatar recompensa: ${it.localizedMessage}")
+            }
+        }
+    }
+
+    fun joinClan(clanId: String, name: String) {
+        viewModelScope.launch {
+            addLog("Adentrando equipe '$name' no servidor...")
+            repository.joinClanLocal(clanId)
+            addLog("Conexão ao clã '$name' estabelecida!")
+            repository.syncAllClans()
+        }
+    }
+
+    fun challengeClan(targetClanId: String, name: String) {
+        viewModelScope.launch {
+            addLog("Declarando guerra contra o clã '$name'...")
+            repository.challengeClanWar(targetClanId).onSuccess {
+                addLog("💣 DECLARAÇÃO DE GUERRA ENVIADA! Preparem seus fardos e kimonos!")
+            }.onFailure {
+                addLog("Falha ao declarar guerra oficial: ${it.localizedMessage}")
+            }
+        }
+    }
+
+    fun createClan(name: String, gymName: String, city: String, country: String, description: String) {
+        viewModelScope.launch {
+            addLog("Criando clã '$name'...")
+            repository.createClan(name, gymName, city, country, description).onSuccess {
+                addLog("Clã '${it.name}' criado com sucesso no tatame oficial!")
+                repository.syncAllClans()
+            }.onFailure {
+                addLog("Falha ao criar clã: ${it.localizedMessage}")
+            }
         }
     }
 

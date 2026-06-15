@@ -131,6 +131,10 @@ fun MainScaffoldLayout(viewModel: JiuSpeakViewModel) {
                             "SHOP" -> ShopScreen(viewModel = viewModel)
                             "MARKETPLACE" -> MarketplaceScreen(viewModel = viewModel)
                             "LEADERBOARD" -> LeaderboardScreen(viewModel = viewModel)
+                            "SEASON_PASS" -> SeasonPassScreen(viewModel = viewModel)
+                            "CLANS" -> ClanScreen(viewModel = viewModel)
+                            "LEAGUE" -> LeagueScreen(viewModel = viewModel)
+                            "ACHIEVEMENTS" -> AchievementsScreen(viewModel = viewModel)
                             else -> HomeScreen(viewModel = viewModel)
                         }
                     }

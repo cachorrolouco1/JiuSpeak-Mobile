@@ -36,6 +36,11 @@ fun HomeScreen(viewModel: JiuSpeakViewModel) {
     val dailyMissions by viewModel.dailyMissions.collectAsState()
     val posts by viewModel.socialPosts.collectAsState()
 
+    val activeSeason by viewModel.activeSeason.collectAsState()
+    val myClanState by viewModel.myClan.collectAsState()
+    val leagueStatusState by viewModel.leagueStatus.collectAsState()
+    val achievementsState by viewModel.achievements.collectAsState()
+
     val currentProfile = profile ?: UserProfileEntity()
 
     Column(
@@ -137,6 +142,136 @@ fun HomeScreen(viewModel: JiuSpeakViewModel) {
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
+        }
+
+        // GAMIFIED ACTIVE V4 SHORTCUTS DASHBOARD (Seasons, ELO Leagues, Teams, Achievements)
+        Text(
+            text = "JIUSPEAK ATLETA PASSPORT (V4)",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black,
+            color = NeonBlue,
+            letterSpacing = 1.sp,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Season Pass widget card
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { viewModel.navigateTo("SEASON_PASS") },
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                border = BorderStroke(1.dp, NeonBlue.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("👑 SEASON PASS", fontSize = 10.sp, fontWeight = FontWeight.Black, color = NeonBlue, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        activeSeason?.name?.uppercase() ?: "ROAD TO BLUE",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "Nível ${activeSeason?.currentLevel ?: 1}",
+                        fontSize = 10.sp,
+                        color = FontSecondary
+                    )
+                }
+            }
+
+            // World League ELO card
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { viewModel.navigateTo("LEAGUE") },
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("🥈 LIGA MUNDIAL", fontSize = 10.sp, fontWeight = FontWeight.Black, color = NeonCyan, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "${leagueStatusState?.division ?: "SILVER"} ${leagueStatusState?.subDivision ?: 2}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "${leagueStatusState?.currentElo ?: 1350} ELO pts",
+                        fontSize = 10.sp,
+                        color = FontSecondary
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Clan or Team dashboard card
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { viewModel.navigateTo("CLANS") },
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("🛡️ EQUIPE / CLÃ", fontSize = 10.sp, fontWeight = FontWeight.Black, color = GoldAccent, fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        myClanState?.name ?: "SEM EQUIPE",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        if (myClanState != null) "Rank #${myClanState!!.rankPosition}" else "Buscar Aliança",
+                        fontSize = 10.sp,
+                        color = FontSecondary
+                    )
+                }
+            }
+
+            // Achievements bulletin card
+            Card(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { viewModel.navigateTo("ACHIEVEMENTS") },
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                border = BorderStroke(1.dp, Color(0xFFC084FC).copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("🏅 MEDALHA REAL", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFFC084FC), fontFamily = FontFamily.Monospace)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "CONQUISTAS",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    val completeCount = achievementsState.count { it.isCompleted }
+                    Text(
+                        "$completeCount / ${achievementsState.size} Concluídas",
+                        fontSize = 10.sp,
+                        color = FontSecondary
                     )
                 }
             }
