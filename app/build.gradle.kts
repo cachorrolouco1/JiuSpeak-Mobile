@@ -120,9 +120,25 @@ dependencies {
   "ksp"(libs.androidx.room.compiler)
 }
 
-tasks.register<Copy>("copyApkToReleases") {
-  from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
-  into(File(project.rootDir, "releases"))
+val rootDirFile = project.rootDir
+val buildDirFile = layout.buildDirectory.get().asFile
+
+tasks.register("copyApkToReleases") {
+  val targetFile = File(rootDirFile, "releases/app-debug.apk")
+  val sourceFile = File(buildDirFile, "outputs/apk/debug/app-debug.apk")
+  
+  doLast {
+    if (sourceFile.exists()) {
+      val parentDir = targetFile.parentFile
+      if (!parentDir.exists()) {
+        parentDir.mkdirs()
+      }
+      sourceFile.copyTo(targetFile, overwrite = true)
+      logger.lifecycle("--- COPY APK SUCCESS: ${sourceFile.length()} bytes copied to releases/app-debug.apk ---")
+    } else {
+      logger.error("--- COPY APK ERROR: Source APK file NOT found at: ${sourceFile.absolutePath} ---")
+    }
+  }
 }
 
 tasks.configureEach {
