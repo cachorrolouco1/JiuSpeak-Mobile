@@ -16,6 +16,8 @@ data class RegisterRequest(val email: String, val username: String, val password
 data class AuthResponse(
     @SerializedName("accessToken", alternate = ["token"])
     val token: String,
+    @SerializedName("accessToken", alternate = ["token"])
+    val accessToken: String,
     val refreshToken: String,
     val user: UserProfileDto
 )
@@ -252,10 +254,8 @@ object JiuSpeakApiClient {
         if (!formattedUrl.endsWith("/")) {
             formattedUrl += "/"
         }
-        if (formattedUrl != configuredBaseUrl || currentApi == null) {
-            configuredBaseUrl = formattedUrl
-            buildClient()
-        }
+        configuredBaseUrl = formattedUrl
+        buildClient()
     }
 
     fun getApi(): JiuSpeakApi? {
