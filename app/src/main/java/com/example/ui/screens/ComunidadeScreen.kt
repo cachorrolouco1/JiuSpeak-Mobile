@@ -35,7 +35,7 @@ fun ComunidadeScreen(viewModel: JiuSpeakViewModel) {
     val posts by viewModel.socialPosts.collectAsState()
     var isWritingPost by remember { mutableStateOf(false) }
     var newPostText by remember { mutableStateOf("") }
-    var mockImageAttach by remember { mutableStateOf<String?>(null) }
+    var selectedImageAttach by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -95,13 +95,13 @@ fun ComunidadeScreen(viewModel: JiuSpeakViewModel) {
                             Pair("🥈 Arena", "https://media.istockphoto.com/id/1183188597/photo/man-ready-for-fighting.jpg")
                         )
                         choices.forEach { (label, url) ->
-                            val isSelected = mockImageAttach == url
+                            val isSelected = selectedImageAttach == url
                             Box(
                                 modifier = Modifier
                                     .padding(horizontal = 4.dp)
                                     .clip(RoundedCornerShape(4.dp))
                                     .background(if (isSelected) NeonCyan else DarkCard)
-                                    .clickable { mockImageAttach = if (isSelected) null else url }
+                                    .clickable { selectedImageAttach = if (isSelected) null else url }
                                     .padding(horizontal = 6.dp, vertical = 4.dp)
                             ) {
                                 Text(label, fontSize = 9.sp, color = if (isSelected) Color.Black else FontSecondary, fontWeight = FontWeight.Bold)
@@ -115,9 +115,9 @@ fun ComunidadeScreen(viewModel: JiuSpeakViewModel) {
                         }
                         IconButton(onClick = {
                             if (newPostText.isNotBlank()) {
-                                viewModel.createPost(newPostText, mockImageAttach)
+                                viewModel.createPost(newPostText, selectedImageAttach)
                                 newPostText = ""
-                                mockImageAttach = null
+                                selectedImageAttach = null
                                 isWritingPost = false
                             }
                         }) {

@@ -143,14 +143,17 @@ class JiuSpeakRepository(
             
             val authUserId = fetchedUser.id ?: ""
             val authUserEmail = fetchedUser.email ?: ""
+            val authUsername = fetchedUser.username ?: ""
             
             println("=== CURRENT USER ID: $authUserId ===")
             println("=== CURRENT USER EMAIL: $authUserEmail ===")
+            println("=== CURRENT USERNAME: $authUsername ===")
             
             prefs.edit()
                 .putString("auth_token", fetchedToken)
                 .putString("auth_user_id", authUserId)
                 .putString("auth_user_email", authUserEmail)
+                .putString("auth_username", authUsername)
                 .apply()
 
             // database.clearAllTables() antes de persistir novo usuário
@@ -194,14 +197,17 @@ class JiuSpeakRepository(
             
             val authUserId = fetchedUser.id ?: ""
             val authUserEmail = fetchedUser.email ?: ""
+            val authUsername = fetchedUser.username ?: ""
             
             println("=== CURRENT USER ID: $authUserId ===")
             println("=== CURRENT USER EMAIL: $authUserEmail ===")
+            println("=== CURRENT USERNAME: $authUsername ===")
             
             prefs.edit()
                 .putString("auth_token", fetchedToken)
                 .putString("auth_user_id", authUserId)
                 .putString("auth_user_email", authUserEmail)
+                .putString("auth_username", authUsername)
                 .apply()
 
             println("=== TRUNCATING LOCAL DATABASE TABLES ===")
@@ -248,6 +254,8 @@ class JiuSpeakRepository(
             // 3. Authenticate sync
             val authUserId = prefs.getString("auth_user_id", "") ?: ""
             val authUserEmail = prefs.getString("auth_user_email", "") ?: ""
+            val authUsername = prefs.getString("auth_username", "") ?: ""
+            val profileUsername = userDto.username ?: ""
 
             // Validate Identity Discrepancies
             if ((authUserId.isNotEmpty() && authUserId != profileId) || (authUserEmail.isNotEmpty() && authUserEmail != profileEmail)) {
@@ -263,6 +271,7 @@ class JiuSpeakRepository(
             prefs.edit()
                 .putString("auth_user_id", profileId)
                 .putString("auth_user_email", profileEmail)
+                .putString("auth_username", profileUsername)
                 .apply()
 
             val mappedEntity = mapDtoToEntity(userDto, token)
@@ -277,9 +286,11 @@ class JiuSpeakRepository(
             // Standard logs with specified labels
             println("=== AUTHENTICATION IDENTITY AUDIT ===")
             println("AUTH USER ID: $authUserId")
-            println("AUTH EMAIL: $authUserEmail")
             println("PROFILE USER ID: $profileId")
+            println("AUTH EMAIL: $authUserEmail")
             println("PROFILE EMAIL: $profileEmail")
+            println("AUTH USERNAME: $authUsername")
+            println("PROFILE USERNAME: $profileUsername")
             println("ROOM USER ID: $roomId")
             println("ROOM EMAIL: $roomEmail")
             println("=====================================")

@@ -141,7 +141,7 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
                 _pvpMatchState.value = PvpMatchState.InteractiveFight(
                     opponentName = opponentName,
                     matchType = matchType,
-                    questions = generateMockArenaQuestions(matchType),
+                    questions = emptyList(),
                     currentQuestionIndex = 0,
                     opponentScore = 0,
                     myScore = 0
@@ -399,7 +399,7 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
             _pvpMatchState.value = PvpMatchState.InteractiveFight(
                 opponentName = selectedOpponent,
                 matchType = matchType,
-                questions = generateMockArenaQuestions(matchType),
+                questions = emptyList(),
                 currentQuestionIndex = 0,
                 opponentScore = 0,
                 myScore = 0
@@ -607,25 +607,6 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
             }.onFailure {
                 addLog("Falha ao criar clã: ${it.localizedMessage}")
             }
-        }
-    }
-
-    // Generate mock arena questions loaded on demand
-    private fun generateMockArenaQuestions(type: String): List<ArenaQuestion> {
-        return when (type) {
-            "Vocabulary" -> listOf(
-                ArenaQuestion("How do you say 'FAIXA AZUL' in English?", listOf("Blue Ribbon", "Blue Stripe", "Blue Belt", "Blue Cord"), 2),
-                ArenaQuestion("What does description 'TAP OUT' mean on BJJ mats?", listOf("Submeter-se / Desistir", "Apertar o kimono", "Calçar luvas", "Entrar na arena"), 0),
-                ArenaQuestion("How do you translate 'QUEDA' in UFC rules?", listOf("Sweep", "Takedown", "Kimura", "Guard Pass"), 1)
-            )
-            "Pronunciation" -> listOf(
-                ArenaQuestion("Translate 'SE CONCENTRE NA GUARDA' and pick correct phonetics:", listOf("Focus on your guard", "Stay on back side", "Catch the sleeve", "Watch the timer"), 0),
-                ArenaQuestion("Which word describes phonetically 'CHOKE'?", listOf("Chocar", "Estrangulamento", "Apertar pegada", "Ganchos"), 1)
-            )
-            else -> listOf(
-                ArenaQuestion("Before a match, the Referee shouts: 'COMBAT!'. What do you do?", listOf("Shake hands and start fighting", "Bow to the coach", "Walk off the mats", "Adjust your belt"), 0),
-                ArenaQuestion("The opponent is in your CLOSED GUARD. How do you describe this?", listOf("Ele está nas minhas costas", "Ele está na minha guarda fechada", "Estou montado nele", "Estou passando a meia guarda"), 1)
-            )
         }
     }
 }
