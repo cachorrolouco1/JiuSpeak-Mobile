@@ -792,13 +792,15 @@ class JiuSpeakRepository(
     }
 
     suspend fun logout() {
-        prefs.edit()
-            .remove("auth_token")
-            .remove("auth_user_id")
-            .remove("auth_user_email")
-            .apply()
+        println("=== FULL SESSION PURGE: CLEARING PREFERENCES, ROOM DB, AND CACHE DIR ===")
+        prefs.edit().clear().apply()
         try {
             database.clearAllTables()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        try {
+            context.cacheDir.deleteRecursively()
         } catch (e: Exception) {
             e.printStackTrace()
         }

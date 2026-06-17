@@ -297,7 +297,7 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
             repository.logout()
             _isLoggedIn.value = false
             navigateTo("HOME")
-            addLog("Logged out. Tokens cleared. Local mode intact.")
+            addLog("Logged out. Tokens cleared and secure session purged.")
         }
     }
 
