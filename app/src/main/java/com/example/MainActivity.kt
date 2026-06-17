@@ -88,7 +88,6 @@ class MainActivity : ComponentActivity() {
 fun MainScaffoldLayout(viewModel: JiuSpeakViewModel) {
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val activeTab by viewModel.activeTab.collectAsState()
-    val pushAlerts by viewModel.activePushAlerts.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (!isLoggedIn) {
@@ -126,6 +125,7 @@ fun MainScaffoldLayout(viewModel: JiuSpeakViewModel) {
                             "COMUNIDADE" -> ComunidadeScreen(viewModel = viewModel)
                             "APRENDER" -> AprenderScreen(viewModel = viewModel)
                             "PERFIL" -> PerfilScreen(viewModel = viewModel)
+                            "WALLET" -> WalletScreen(viewModel = viewModel)
                             "CHAT" -> ChatScreen(viewModel = viewModel)
                             "SETTINGS" -> SettingsScreen(viewModel = viewModel)
                             "SHOP" -> ShopScreen(viewModel = viewModel)
@@ -136,57 +136,6 @@ fun MainScaffoldLayout(viewModel: JiuSpeakViewModel) {
                             "LEAGUE" -> LeagueScreen(viewModel = viewModel)
                             "ACHIEVEMENTS" -> AchievementsScreen(viewModel = viewModel)
                             else -> HomeScreen(viewModel = viewModel)
-                        }
-                    }
-                }
-            }
-        }
-
-        // FLOATING FCM RECEPTOR CARDS FOR SYSTEM ALERTS
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            pushAlerts.forEach { alert ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .border(1.5.dp, NeonCyan, RoundedCornerShape(10.dp))
-                        .animateContentSize(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF030712))
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .padding(12.dp)
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("🔔", fontSize = 24.sp)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = alert.title,
-                                color = FontPrimary,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace,
-                                letterSpacing = 0.5.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = alert.body,
-                                color = FontSecondary,
-                                fontSize = 11.sp
-                            )
-                        }
-                        IconButton(onClick = { viewModel.dismissPushAlert(alert.id) }) {
-                            Icon(Icons.Default.Close, contentDescription = "Close push alert", tint = FontSecondary)
                         }
                     }
                 }

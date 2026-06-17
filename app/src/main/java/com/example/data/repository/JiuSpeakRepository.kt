@@ -33,9 +33,6 @@ class JiuSpeakRepository(
     val apiBaseUrl: String
         get() = prefs.getString("api_url", com.example.data.network.ApiConfig.productionBaseUrl) ?: com.example.data.network.ApiConfig.productionBaseUrl
 
-    val isOfflineMode: Boolean
-        get() = false
-
     val isLoggedIn: Boolean
         get() = prefs.getString("auth_token", null) != null
 
@@ -51,12 +48,12 @@ class JiuSpeakRepository(
         JiuSpeakApiClient.configure(url, context)
     }
 
-    suspend fun setOfflineMode(enabled: Boolean) {
-        prefs.edit().putBoolean("is_offline_mode", enabled).apply()
-    }
-
     // Reactive Flows for UI
     val userProfileFlow: Flow<UserProfileEntity?> = userDao.getProfileFlow()
+
+    suspend fun getProfileDirect(): UserProfileEntity? {
+        return userDao.getProfileDirect()
+    }
     val dailyMissionsFlow: Flow<List<DailyMissionEntity>> = missionDao.getAllMissions()
     val socialPostsFlow: Flow<List<SocialPostEntity>> = socialDao.getAllPosts()
     val pvpBattlesFlow: Flow<List<PvpBattleEntity>> = pvpDao.getAllBattles()
@@ -72,160 +69,6 @@ class JiuSpeakRepository(
 
     // Core Business Operations
 
-    suspend fun seedMockDataIfEmpty() {
-        withContext(Dispatchers.IO) {
-            // Check if profile exists, if not seed it
-            val profile = userDao.getProfileDirect()
-            if (profile == null) {
-                userDao.insertProfile(UserProfileEntity())
-            }
-
-            // Seed missions
-            val existingMissions = missionDao.getAllMissions().firstOrNull() ?: emptyList()
-            if (existingMissions.isEmpty()) {
-                missionDao.insertMissions(listOf(
-                    DailyMissionEntity("m1", "PRE-MATCH PREPARATION", "Watch an English lesson about Guard Passes", 150, 100, false, 0, 1),
-                    DailyMissionEntity("m2", "SPARRING PRONUNCIATION", "Perform 3 perfect tap-out pronunciation exercises", 200, 150, false, 1, 3),
-                    DailyMissionEntity("m3", "COMMUNITY GLADIATOR", "Create a discussion post describing your favorite escape technique", 100, 80, false, 0, 1),
-                    DailyMissionEntity("m4", "ARENA WARMUP", "Participate in 1 PvP Vocabulary Arena fight", 300, 250, false, 0, 1)
-                ))
-            }
-
-            // Seed Social posts
-            val existingPosts = socialDao.getAllPosts().firstOrNull() ?: emptyList()
-            if (existingPosts.isEmpty()) {
-                val mockPosts = listOf(
-                    SocialPostEntity(
-                        "post_3", "Charles 'Do Bronx' Oliveira", "BLACK", 42, "avatar_charles",
-                        "The training in English never stops! If you want to challenge the elite, you have to talk like the elite. Train hard. Speak globally! Let's get this weekly belt! ⚔️",
-                        "https://media.istockphoto.com/id/1183188597/photo/man-ready-for-fighting.jpg",
-                        234, 18, "2 hours ago", false
-                    ),
-                    SocialPostEntity(
-                        "post_2", "John Jones Pro", "PURPLE", 21, "avatar_john",
-                        "Just finished the vocabulary challenge about guard escapes. In BJJ, detail is everything; in English, it's the exact same! Focus on the details and dominate! #JiuSpeak",
-                        null, 89, 5, "5 hours ago", true
-                    ),
-                    SocialPostEntity(
-                        "post_1", "Prof. Igor Gracie", "BLACK", 51, "avatar_igor",
-                        "I have been teaching English and Jiu-Jitsu in California for 5 years. I recommend all Brazilian purple belts to start studying English vocabulary immediately. Opportunities abroad come fast!",
-                        null, 156, 12, "Yesterday", false
-                    )
-                )
-                socialDao.insertPosts(mockPosts)
-            }
-
-            // Seed Pvp matches
-            val existingPvp = pvpDao.getAllBattles().firstOrNull() ?: emptyList()
-            if (existingPvp.isEmpty()) {
-                pvpDao.insertBattles(listOf(
-                    PvpBattleEntity("b3", "Ryan_The_King", "BROWN", "avatar_fighter3", "Conversation", 85, 78, "WIN"),
-                    PvpBattleEntity("b2", "Gabi-Garcia-Fan", "BLUE", "avatar_fighter2", "Vocabulary", 92, 92, "DRAW"),
-                    PvpBattleEntity("b1", "BJJ_Master_99", "BLACK", "avatar_fighter1", "Pronunciation", 70, 95, "LOSS")
-                ))
-            }
-
-            // Seed courses
-            val existingCourses = courseDao.getAllCourses().firstOrNull() ?: emptyList()
-            if (existingCourses.isEmpty()) {
-                courseDao.insertCourses(listOf(
-                    CourseEntity("c1", "International Seminars", "Learn to teach classes & answer student questions in fluent English", "English for Competitors", 12, 5, false, 1.5f),
-                    CourseEntity("c2", "MMA Press Conference", "Master interview vocabulary, call-outs, and post-fight speeches", "English for Competitors", 8, 8, true, 1.2f),
-                    CourseEntity("c3", "Referee Commands", "Learn the essential rules, penalties, and ring direction terminology", "Referee English", 10, 2, false, 1.0f)
-                ))
-            }
-
-            // Seed teachers
-            val existingTeachers = teacherDao.getAllTeachers().firstOrNull() ?: emptyList()
-            if (existingTeachers.isEmpty()) {
-                teacherDao.insertTeachers(listOf(
-                    TeacherEntity("t1", "Coach Michael", "BLACK", 4.9f, 250, "Black belt under Gracie Barra. Specializes in teaching BJJ terminology, academy management, and seminar delivery in English.", "USA", "English", "avatar_t1"),
-                    TeacherEntity("t2", "Prof. Isabella", "BROWN", 4.8f, 200, "BJJ coach & certified ESL teacher. Expert in post-fight interview preparations and high-pressure media speech training.", "Brazil", "English / Portuguese", "avatar_t2"),
-                    TeacherEntity("t3", "Dean G.", "PURPLE", 4.6f, 150, "Expert referee. Explains Referee commands, international federation standards (IBJJF), and rules translations seamlessly.", "UK", "English", "avatar_t3")
-                ))
-            }
-
-            // Seed chat messages
-            val existingChat = chatDao.getAllMessages().firstOrNull() ?: emptyList()
-            if (existingChat.isEmpty()) {
-                chatDao.insertMessage(ChatMessageEntity(0, "system", "SYSTEM", "WHITE", "Welcome to JiuSpeak Global Chat! Talk to fellow BJJ athletes studying languages. ⚔️🥋", System.currentTimeMillis() - 1000 * 60 * 10))
-                chatDao.insertMessage(ChatMessageEntity(0, "u1", "MarcusBJJ", "BLUE", "E aí galera! Quem quer treinar pronúncia na Arena hoje?", System.currentTimeMillis() - 1000 * 60 * 5))
-                chatDao.insertMessage(ChatMessageEntity(0, "u2", "Sensei_Arthur", "BLACK", "Estudar inglês salvou meus seminários na Europa. Mandem ver nos treinos!", System.currentTimeMillis() - 1000 * 60 * 2))
-            }
-
-            // Seed Active Season Pass
-            val activeSeason = seasonDao.getActiveSeason().firstOrNull()
-            if (activeSeason == null) {
-                seasonDao.insertSeason(
-                    SeasonEntity(
-                        id = "season_v4",
-                        name = "Road To Blue Belt",
-                        description = "Trilha oficial para dominar o inglês e o tatame! Complete missões e vença na Arena para resgatar recompensas especiais.",
-                        themeColorHex = "#009DFF",
-                        bannerUrl = "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600",
-                        startTimestamp = System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 5, // started 5 days ago
-                        endTimestamp = System.currentTimeMillis() + 1000 * 60 * 60 * 24 * 25, // ends in 25 days
-                        maxLevel = 5,
-                        currentLevel = 1,
-                        currentXp = 250,
-                        requiredXpNextLevel = 1000,
-                        hasVipPass = true,
-                        hasProPass = false
-                    )
-                )
-
-                seasonDao.insertRewards(listOf(
-                    SeasonRewardEntity("r1", "season_v4", 1, "JIU_TICKETS", "100 JiuTickets", false, 100, true, "ic_tickets"),
-                    SeasonRewardEntity("r2", "season_v4", 2, "FRAME", "Moldura Neon Blue", false, 0, false, "frame_neon"),
-                    SeasonRewardEntity("r3", "season_v4", 3, "BOOSTER", "XP Booster +50%", true, 1, false, "ic_booster"),
-                    SeasonRewardEntity("r4", "season_v4", 4, "AVATAR", "Avatar Guerreiro de Bronze", false, 0, false, "avatar_fighter3"),
-                    SeasonRewardEntity("r5", "season_v4", 5, "TITLE", "Título 'Gladiador de Oxford'", true, 0, false, "ic_title")
-                ))
-            }
-
-            // Seed Clans (Equipes)
-            val existingClans = clanDao.getAllClansFlow().firstOrNull() ?: emptyList()
-            if (existingClans.isEmpty()) {
-                clanDao.insertClans(listOf(
-                    ClanEntity("clan_1", "Gracie Barra Headquarter", "https://logo.png", "Brazil", "Rio de Janeiro", "Gracie Barra Headquarter", "Mestre Carlos Gracie Jr", "A maior equipe de Jiu-Jitsu do mundo, unida no tatame e no inglês!", 15, 30, 48500, 1, "MEMBER"),
-                    ClanEntity("clan_2", "Alliance Global", "https://logo.png", "USA", "New York", "Alliance NY", "Mestre Fabio Gurgel", "Multacampeões mundiais focados na excelência e conversação internacional.", 12, 30, 42000, 2, "NONE"),
-                    ClanEntity("clan_3", "Atos Jiu-Jitsu Arena", "https://logo.png", "USA", "San Diego", "Atos HQ", "Mestre André Galvão", "Modernidade, explosão e estudo diário do vocabulário competitivo.", 8, 25, 35000, 3, "NONE")
-                ))
-            }
-
-            // Seed League ELO Status
-            val leagueStatus = leagueDao.getLeagueStatusFlow().firstOrNull()
-            if (leagueStatus == null) {
-                leagueDao.insertLeagueStatus(
-                    LeagueEntity(
-                        id = "league_state",
-                        currentElo = 1350,
-                        division = "SILVER",
-                        subDivision = 2,
-                        promotionGoalElo = 1500,
-                        rebaixamentoThresholdElo = 1200,
-                        globalRank = 422,
-                        countryRank = 154,
-                        winsCount = 28,
-                        lossesCount = 12
-                    )
-                )
-            }
-
-            // Seed Achievements (Conquistas)
-            val existingAchievements = achievementDao.getAllAchievementsFlow().firstOrNull() ?: emptyList()
-            if (existingAchievements.isEmpty()) {
-                achievementDao.insertAchievements(listOf(
-                    AchievementEntity("ach1", "Primeira Vitória", "Vença seu primeiro sparring PvP na Arena de Vocabulário", "PVP", "COMMON", 1, 1, true, 50, 10, "ic_medal_1", System.currentTimeMillis() - 1000 * 60 * 60 * 12),
-                    AchievementEntity("ach2", "Guerreiro Consistente", "Complete missões diárias por 7 dias consecutivos", "STUDY", "RARE", 4, 7, false, 250, 50, "ic_medal_2", 0L),
-                    AchievementEntity("ach3", "Dominador da Fala", "Complete 10 lições de conversação com pronúncia excelente", "STUDY", "EPIC", 8, 10, false, 500, 100, "ic_medal_3", 0L),
-                    AchievementEntity("ach4", "Campeão de Oxford", "Alcance a Divisão Ouro na Liga Mundial de ELO", "PVP", "LEGENDARY", 1350, 2000, false, 1000, 250, "ic_medal_4", 0L),
-                    AchievementEntity("ach5", "Mentor Favorito", "Contrate 5 mentorias premium no marketplace", "MARKETPLACE", "MYTHIC", 2, 5, false, 1500, 500, "ic_medal_5", 0L)
-                ))
-            }
-        }
-    }
-
     // Network & Sync logic with full offline fallbacks (to support local emulator playground)
 
     companion object {
@@ -233,9 +76,18 @@ class JiuSpeakRepository(
             val rawBelt = dto.beltColor?.uppercase()?.trim() ?: "WHITE"
             val finalBelt = if (rawBelt.isEmpty()) "WHITE" else rawBelt
             
+            val mappedId = dto.id ?: ""
+            val mappedEmail = dto.email ?: ""
+            
+            println("=== MAP DTO TO ENTITY ===")
+            println("Mapped ID: $mappedId")
+            println("Mapped Email: $mappedEmail")
+            
             return UserProfileEntity(
-                email = dto.email ?: "campeao@jiuspeak.com",
-                username = dto.username ?: "AtletaGuerreiro",
+                id = mappedId,
+                email = mappedEmail,
+                username = dto.username ?: "",
+                fullName = dto.username ?: "",
                 beltColor = finalBelt,
                 level = dto.level ?: 1,
                 xp = dto.xp ?: 0,
@@ -245,43 +97,77 @@ class JiuSpeakRepository(
                 selectedAvatar = dto.avatar ?: "avatar_fighter",
                 selectedFrameColor = dto.frameColor ?: "#009DFF",
                 activeToken = token,
-                bio = dto.bio ?: "BJJ Athlete studying English for international tournaments.",
-                city = dto.city ?: "Rio de Janeiro",
-                country = dto.country ?: "Brazil",
+                bio = dto.bio ?: "",
+                city = dto.city ?: "",
+                country = dto.country ?: "",
                 nativeLanguage = dto.nativeLanguage ?: "Portuguese",
                 studiedLanguages = dto.studiedLanguages ?: "English",
-                learningGoals = dto.learningGoals ?: "Fluent English for Teaching Seminars",
-                instagram = dto.instagram ?: "jiuspeak",
-                youtube = dto.youtube ?: "jiuspeak_channel",
-                facebook = dto.facebook ?: "jiuspeakofficial",
-                website = dto.website ?: "www.jiuspeak.com.br",
-                coverPhoto = dto.coverPhoto ?: "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600",
-                isVerified = dto.isVerified ?: true,
-                followersCount = dto.followersCount ?: 1420,
-                followingCount = dto.followingCount ?: 523
+                learningGoals = dto.learningGoals ?: "",
+                instagram = dto.instagram ?: "",
+                youtube = dto.youtube ?: "",
+                facebook = dto.facebook ?: "",
+                website = dto.website ?: "",
+                coverPhoto = dto.coverPhoto ?: "",
+                isVerified = dto.isVerified ?: false,
+                followersCount = dto.followersCount ?: 0,
+                followingCount = dto.followingCount ?: 0
             )
         }
     }
 
+    fun getAuthUserId(): String? {
+        return prefs.getString("auth_user_id", null)
+    }
+
+    fun getAuthUserEmail(): String? {
+        return prefs.getString("auth_user_email", null)
+    }
+
     suspend fun login(email: String, prepopulatedPass: String): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
         try {
+            // Limpeza completa de sessão anterior antes de novo login
+            println("=== PURGING PRIOR SESSION AND LOGGING OUT BEFORE NEW LOGIN ===")
+            logout()
+            
             JiuSpeakApiClient.ensureCsrf()
             val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
             val response = api.login(LoginRequest(email, prepopulatedPass))
             
+            // LOGS CORRESPONDENTES EXIGIDOS
             println("=== LOGIN RESPONSE RECEIVED ===")
             println("Token: ${response.token}")
             println("User DTO: ${response.user}")
             
             val fetchedUser = response.user ?: throw Exception("Login response body has no user profile")
             val fetchedToken = response.token ?: ""
-            prefs.edit().putString("auth_token", fetchedToken).apply()
+            
+            val authUserId = fetchedUser.id ?: ""
+            val authUserEmail = fetchedUser.email ?: ""
+            
+            println("=== CURRENT USER ID: $authUserId ===")
+            println("=== CURRENT USER EMAIL: $authUserEmail ===")
+            
+            prefs.edit()
+                .putString("auth_token", fetchedToken)
+                .putString("auth_user_id", authUserId)
+                .putString("auth_user_email", authUserEmail)
+                .apply()
+
+            // database.clearAllTables() antes de persistir novo usuário
+            println("=== TRUNCATING LOCAL DATABASE TABLES ===")
+            database.clearAllTables()
 
             val entity = mapDtoToEntity(fetchedUser, fetchedToken)
             println("=== ROOM INSERT USER PROFILE ===")
             println("Entity: $entity")
             
             userDao.insertProfile(entity)
+            
+            // ROOM SELECT LOG
+            val selectProfile = userDao.getProfileDirect()
+            println("=== ROOM SELECT USER PROFILE ===")
+            println("Selected: $selectProfile")
+            
             Result.success(entity)
         } catch (e: Exception) {
             println("=== LOGIN RESPONSE ERROR ===")
@@ -292,6 +178,9 @@ class JiuSpeakRepository(
 
     suspend fun register(email: String, username: String, pass: String, belt: String): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
         try {
+            println("=== PURGING PRIOR SESSION AND LOGGING OUT BEFORE NEW REGISTER ===")
+            logout()
+            
             JiuSpeakApiClient.ensureCsrf()
             val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
             val response = api.register(RegisterRequest(email, username, pass, belt))
@@ -302,13 +191,32 @@ class JiuSpeakRepository(
             
             val fetchedUser = response.user ?: throw Exception("Register response body has no user profile")
             val fetchedToken = response.token ?: ""
-            prefs.edit().putString("auth_token", fetchedToken).apply()
+            
+            val authUserId = fetchedUser.id ?: ""
+            val authUserEmail = fetchedUser.email ?: ""
+            
+            println("=== CURRENT USER ID: $authUserId ===")
+            println("=== CURRENT USER EMAIL: $authUserEmail ===")
+            
+            prefs.edit()
+                .putString("auth_token", fetchedToken)
+                .putString("auth_user_id", authUserId)
+                .putString("auth_user_email", authUserEmail)
+                .apply()
+
+            println("=== TRUNCATING LOCAL DATABASE TABLES ===")
+            database.clearAllTables()
 
             val entity = mapDtoToEntity(fetchedUser, fetchedToken)
             println("=== ROOM INSERT USER PROFILE ===")
             println("Entity: $entity")
             
             userDao.insertProfile(entity)
+            
+            val selectProfile = userDao.getProfileDirect()
+            println("=== ROOM SELECT USER PROFILE ===")
+            println("Selected: $selectProfile")
+            
             Result.success(entity)
         } catch (e: Exception) {
             println("=== REGISTER RESPONSE ERROR ===")
@@ -320,23 +228,65 @@ class JiuSpeakRepository(
     suspend fun fetchRemoteProfile(): Result<UserProfileEntity> = withContext(Dispatchers.IO) {
         try {
             val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
-            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
-                return@withContext Result.success(userDao.getProfileDirect() ?: UserProfileEntity())
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+
+            // 1. Fetch Remote Profile
+            val userDto = api.getProfile("Bearer $token")
+            val profileId = userDto.id ?: ""
+            val profileEmail = userDto.email ?: ""
+
+            // 2. Fetch Remote Wallet
+            val walletDto = try {
+                api.getWallet("Bearer $token")
+            } catch (e: Exception) {
+                println("=== WALLET SYNC ERROR ===")
+                throw Exception("Failed to sync wallet balance with backend: ${e.message}")
+            }
+            
+            val finalTickets = walletDto.jiuTickets
+
+            // 3. Authenticate sync
+            val authUserId = prefs.getString("auth_user_id", "") ?: ""
+            val authUserEmail = prefs.getString("auth_user_email", "") ?: ""
+
+            // Validate Identity Discrepancies
+            if ((authUserId.isNotEmpty() && authUserId != profileId) || (authUserEmail.isNotEmpty() && authUserEmail != profileEmail)) {
+                println("=== CRITICAL IDENTITY DISCREPANCY DETECTED ===")
+                println("Purging entire local state, cache and preferences...")
+                logout()
+                try {
+                    context.cacheDir.deleteRecursively()
+                } catch (ignored: Exception) {}
+                throw Exception("Identity discrepancy detected! Local cache, database, and JWT have been cleared. Please login again.")
             }
 
-            val userDto = JiuSpeakApiClient.getApi()!!.getProfile("Bearer $token")
-            
-            println("=== PROFILE RESPONSE RECEIVED Status: SUCCESS ===")
-            println("User DTO: $userDto")
-            
-            val entity = mapDtoToEntity(userDto, token)
-            println("=== ROOM INSERT USER PROFILE ===")
-            println("Entity: $entity")
+            prefs.edit()
+                .putString("auth_user_id", profileId)
+                .putString("auth_user_email", profileEmail)
+                .apply()
+
+            val mappedEntity = mapDtoToEntity(userDto, token)
+            val entity = mappedEntity.copy(jiuTickets = finalTickets)
             
             userDao.insertProfile(entity)
+            val selectProfile = userDao.getProfileDirect()
+            
+            val roomId = selectProfile?.id ?: ""
+            val roomEmail = selectProfile?.email ?: ""
+
+            // Standard logs with specified labels
+            println("=== AUTHENTICATION IDENTITY AUDIT ===")
+            println("AUTH USER ID: $authUserId")
+            println("AUTH EMAIL: $authUserEmail")
+            println("PROFILE USER ID: $profileId")
+            println("PROFILE EMAIL: $profileEmail")
+            println("ROOM USER ID: $roomId")
+            println("ROOM EMAIL: $roomEmail")
+            println("=====================================")
+
             Result.success(entity)
         } catch (e: Exception) {
-            println("=== PROFILE RESPONSE ERROR ===")
+            println("=== PROFILE SYNC RESPONSE ERROR ===")
             e.printStackTrace()
             Result.failure(e)
         }
@@ -345,7 +295,7 @@ class JiuSpeakRepository(
     suspend fun syncRemoteMissions(): Result<List<DailyMissionEntity>> = withContext(Dispatchers.IO) {
         try {
             val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
-            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
+            if (JiuSpeakApiClient.getApi() == null) {
                 return@withContext Result.success(emptyList())
             }
 
@@ -370,63 +320,38 @@ class JiuSpeakRepository(
     }
 
     suspend fun completeMissionLocal(id: String) = withContext(Dispatchers.IO) {
-        val token = currentToken
-        if (!isOfflineMode && token != null && JiuSpeakApiClient.getApi() != null) {
-            try {
-                val api = JiuSpeakApiClient.getApi()!!
-                val updatedUserDto = api.completeMission("Bearer $token", id)
-                
-                // Fetch fresh wallet balance
-                val walletDto = try {
-                    api.getWallet("Bearer $token")
-                } catch (e: Exception) {
-                    null
-                }
-                
-                val finalTickets = walletDto?.jiuTickets 
-                    ?: walletDto?.balance 
-                    ?: updatedUserDto.jiuTickets 
-                    ?: 0
-                    
-                val initialEntity = mapDtoToEntity(updatedUserDto, token)
-                val entity = initialEntity.copy(jiuTickets = finalTickets)
-                
-                userDao.insertProfile(entity)
-                
-                // Refresh list of missions after completion
-                syncRemoteMissions()
-                return@withContext
+        val token = currentToken ?: return@withContext
+        val api = JiuSpeakApiClient.getApi() ?: return@withContext
+        try {
+            val updatedUserDto = api.completeMission("Bearer $token", id)
+            
+            // Fetch fresh wallet balance
+            val walletDto = try {
+                api.getWallet("Bearer $token")
             } catch (e: Exception) {
-                e.printStackTrace()
+                null
             }
-        }
-
-        val missions = missionDao.getAllMissions().firstOrNull() ?: return@withContext
-        val target = missions.find { it.id == id } ?: return@withContext
-        if (!target.isCompleted) {
-            val completed = target.copy(progress = target.maxProgress, isCompleted = true)
-            missionDao.updateMission(completed)
-
-            // Reward tickets & XP
-            val profile = userDao.getProfileDirect()
-            if (profile != null) {
-                var newXp = profile.xp + target.xpReward
-                var newLevel = profile.level
-                if (newXp >= profile.xpNextLevel) {
-                    newXp -= profile.xpNextLevel
-                    newLevel += 1
-                }
-                userDao.insertProfile(profile.copy(
-                    xp = newXp,
-                    level = newLevel,
-                    jiuTickets = profile.jiuTickets + target.jiuTicketsReward
-                ))
-            }
+            
+            val finalTickets = walletDto?.jiuTickets 
+                ?: walletDto?.balance 
+                ?: updatedUserDto.jiuTickets 
+                ?: 0
+                
+            val initialEntity = mapDtoToEntity(updatedUserDto, token)
+            val entity = initialEntity.copy(jiuTickets = finalTickets)
+            
+            userDao.insertProfile(entity)
+            
+            // Refresh list of missions after completion
+            syncRemoteMissions()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
         }
     }
 
     suspend fun addSocialPost(content: String, imageUrl: String?) = withContext(Dispatchers.IO) {
-        val profile = userDao.getProfileDirect() ?: UserProfileEntity()
+        val profile = userDao.getProfileDirect() ?: return@withContext
         val customPost = SocialPostEntity(
             id = "sys_post_local_${System.currentTimeMillis()}",
             authorName = profile.fullName,
@@ -444,7 +369,7 @@ class JiuSpeakRepository(
 
         // Sync to remote if we can
         val token = currentToken
-        if (!isOfflineMode && token != null && JiuSpeakApiClient.getApi() != null) {
+        if (token != null && JiuSpeakApiClient.getApi() != null) {
             try {
                 JiuSpeakApiClient.getApi()!!.createPost("Bearer $token", CreatePostRequest(content, imageUrl))
             } catch (e: Exception) {
@@ -462,7 +387,7 @@ class JiuSpeakRepository(
 
         // Sync to remote
         val token = currentToken
-        if (!isOfflineMode && token != null && JiuSpeakApiClient.getApi() != null) {
+        if (token != null && JiuSpeakApiClient.getApi() != null) {
             try {
                 JiuSpeakApiClient.getApi()!!.likePost("Bearer $token", postId)
             } catch (e: Exception) {
@@ -473,14 +398,12 @@ class JiuSpeakRepository(
 
     suspend fun recordLocalBattle(matchType: String, scoreMe: Int, scoreOpponent: Int, outcome: String, opponentName: String) = withContext(Dispatchers.IO) {
         val id = "b_${System.currentTimeMillis()}"
-        val sampleAvatars = listOf("avatar_fighter1", "avatar_fighter2", "avatar_fighter3", "avatar_charles")
-        val sampleBelts = listOf("WHITE", "BLUE", "PURPLE", "BROWN", "BLACK")
 
         val pvpBattle = PvpBattleEntity(
             id = id,
             opponentName = opponentName,
-            opponentBelt = sampleBelts.random(),
-            opponentAvatar = sampleAvatars.random(),
+            opponentBelt = "WHITE",
+            opponentAvatar = "avatar_fighter",
             matchType = matchType,
             scoreMe = scoreMe,
             scoreOpponent = scoreOpponent,
@@ -490,7 +413,7 @@ class JiuSpeakRepository(
 
         // Remote sync call
         val token = currentToken
-        if (!isOfflineMode && token != null && JiuSpeakApiClient.getApi() != null) {
+        if (token != null && JiuSpeakApiClient.getApi() != null) {
             try {
                 val updatedProfileDto = JiuSpeakApiClient.getApi()!!.recordPvpMatch(
                     "Bearer $token",
@@ -516,31 +439,11 @@ class JiuSpeakRepository(
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-        } else {
-            // ONLY local XP/tickets calculation if truly offline
-            val profile = userDao.getProfileDirect()
-            if (profile != null) {
-                val xpEarned = if (outcome == "WIN") 150 else if (outcome == "DRAW") 80 else 40
-                val ticketsEarned = if (outcome == "WIN") 50 else if (outcome == "DRAW") 25 else 10
-
-                var newXp = profile.xp + xpEarned
-                var newLvl = profile.level
-                if (newXp >= profile.xpNextLevel) {
-                    newXp -= profile.xpNextLevel
-                    newLvl += 1
-                }
-
-                userDao.insertProfile(profile.copy(
-                    xp = newXp,
-                    level = newLvl,
-                    jiuTickets = profile.jiuTickets + ticketsEarned
-                ))
-            }
         }
     }
 
     suspend fun writeChatMessage(messageText: String) = withContext(Dispatchers.IO) {
-        val profile = userDao.getProfileDirect() ?: UserProfileEntity()
+        val profile = userDao.getProfileDirect() ?: return@withContext
         val newMsg = ChatMessageEntity(
             senderId = profile.username,
             senderName = profile.username,
@@ -677,11 +580,8 @@ class JiuSpeakRepository(
     suspend fun syncActiveSeason(): Result<SeasonEntity> = withContext(Dispatchers.IO) {
         try {
             val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
-            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
-                val current = seasonDao.getActiveSeason().firstOrNull() ?: throw Exception("Offline mode")
-                return@withContext Result.success(current)
-            }
-            val dto = JiuSpeakApiClient.getApi()!!.getActiveSeason("Bearer $token")
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val dto = api.getActiveSeason("Bearer $token")
             val seasonEntity = SeasonEntity(
                 id = dto.id,
                 name = dto.name,
@@ -725,7 +625,7 @@ class JiuSpeakRepository(
             seasonDao.claimReward(rewardId)
             
             val token = currentToken
-            if (!isOfflineMode && token != null && JiuSpeakApiClient.getApi() != null) {
+            if (token != null && JiuSpeakApiClient.getApi() != null) {
                 try {
                     val profileDto = JiuSpeakApiClient.getApi()!!.claimReward("Bearer $token", ClaimRewardRequest(rewardId))
                     
@@ -751,11 +651,8 @@ class JiuSpeakRepository(
     suspend fun syncLeagueStatus(): Result<LeagueEntity> = withContext(Dispatchers.IO) {
         try {
             val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
-            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
-                val current = leagueDao.getLeagueStatusFlow().firstOrNull() ?: throw Exception("Offline mode")
-                return@withContext Result.success(current)
-            }
-            val dto = JiuSpeakApiClient.getApi()!!.getLeagueStatus("Bearer $token")
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val dto = api.getLeagueStatus("Bearer $token")
             val entity = LeagueEntity(
                 id = dto.id,
                 currentElo = dto.currentElo,
@@ -778,10 +675,8 @@ class JiuSpeakRepository(
     suspend fun syncAllClans(): Result<List<ClanEntity>> = withContext(Dispatchers.IO) {
         try {
             val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
-            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
-                return@withContext Result.success(clanDao.getAllClansFlow().firstOrNull() ?: emptyList())
-            }
-            val dtos = JiuSpeakApiClient.getApi()!!.getAllClans("Bearer $token")
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val dtos = api.getAllClans("Bearer $token")
             val entities = dtos.map {
                 ClanEntity(
                     id = it.id,
@@ -808,29 +703,9 @@ class JiuSpeakRepository(
 
     suspend fun createClan(name: String, gymName: String, city: String, country: String, description: String): Result<ClanEntity> = withContext(Dispatchers.IO) {
         try {
-            val token = currentToken
-            if (isOfflineMode || token == null || JiuSpeakApiClient.getApi() == null) {
-                // Offline fallback creation
-                val newClan = ClanEntity(
-                    id = "clan_local_${System.currentTimeMillis()}",
-                    name = name,
-                    logoUrl = "https://logo.png",
-                    country = country,
-                    city = city,
-                    gymName = gymName,
-                    masterName = userDao.getProfileDirect()?.username ?: "Me",
-                    description = description,
-                    memberCount = 1,
-                    maxMembers = 30,
-                    totalXp = 100,
-                    rankPosition = 10,
-                    myRole = "LEADER"
-                )
-                clanDao.leaveCurrentClan()
-                clanDao.insertClan(newClan)
-                return@withContext Result.success(newClan)
-            }
-            val dto = JiuSpeakApiClient.getApi()!!.createClan(
+            val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in. Conecte-se para criar equipe."))
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val dto = api.createClan(
                 "Bearer $token",
                 CreateClanRequest(name, gymName, city, country, description)
             )
@@ -864,16 +739,14 @@ class JiuSpeakRepository(
 
     suspend fun challengeClanWar(targetClanId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val token = currentToken
-            if (!isOfflineMode && token != null && JiuSpeakApiClient.getApi() != null) {
-                val response = JiuSpeakApiClient.getApi()!!.challengeClanWar("Bearer $token", ClanWarChallengeRequest(targetClanId))
-                if (response.isSuccessful) {
-                    return@withContext Result.success(true)
-                } else {
-                    return@withContext Result.failure(Exception("War declaration API error"))
-                }
+            val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in. Conecte-se para declarar guerra."))
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val response = api.challengeClanWar("Bearer $token", ClanWarChallengeRequest(targetClanId))
+            if (response.isSuccessful) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Guerra não pôde ser declarada pelo servidor."))
             }
-            Result.success(true) // offline success
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -882,10 +755,8 @@ class JiuSpeakRepository(
     suspend fun syncAchievements(): Result<List<AchievementEntity>> = withContext(Dispatchers.IO) {
         try {
             val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
-            if (isOfflineMode || JiuSpeakApiClient.getApi() == null) {
-                return@withContext Result.success(achievementDao.getAllAchievementsFlow().firstOrNull() ?: emptyList())
-            }
-            val dtos = JiuSpeakApiClient.getApi()!!.getAchievements("Bearer $token")
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val dtos = api.getAchievements("Bearer $token")
             val entities = dtos.map {
                 AchievementEntity(
                     id = it.id,
@@ -910,12 +781,17 @@ class JiuSpeakRepository(
     }
 
     suspend fun logout() {
-        prefs.edit().remove("auth_token").apply()
+        prefs.edit()
+            .remove("auth_token")
+            .remove("auth_user_id")
+            .remove("auth_user_email")
+            .apply()
         try {
             database.clearAllTables()
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        com.example.data.network.JiuSpeakApiClient.clearSession()
     }
 
     private fun mapHttpException(e: Exception): Exception {
@@ -933,5 +809,55 @@ class JiuSpeakRepository(
             return Exception(message)
         }
         return e
+    }
+
+    suspend fun syncCourses(): Result<List<com.example.data.model.CourseEntity>> = withContext(Dispatchers.IO) {
+        try {
+            val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val dtos = api.getCourses("Bearer $token")
+            val entities = dtos.map { dto ->
+                com.example.data.model.CourseEntity(
+                    id = dto.id,
+                    title = dto.title,
+                    subtitle = dto.subtitle,
+                    category = dto.category,
+                    totalLessons = dto.totalLessons,
+                    completedLessons = dto.completedLessons,
+                    isCertified = dto.isCertified,
+                    xpMultiplier = dto.xpMultiplier
+                )
+            }
+            courseDao.insertCourses(entities)
+            Result.success(entities)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    suspend fun syncTeachers(): Result<List<TeacherEntity>> = withContext(Dispatchers.IO) {
+        try {
+            val token = currentToken ?: return@withContext Result.failure(Exception("Not logged in"))
+            val api = JiuSpeakApiClient.getApi() ?: throw Exception("API client not initialized")
+            val dtos = api.getTeachers("Bearer $token")
+            val entities = dtos.map { dto ->
+                TeacherEntity(
+                    id = dto.id,
+                    name = dto.name,
+                    belt = dto.belt,
+                    rating = dto.rating,
+                    hourlyRate = dto.hourlyRate,
+                    bio = dto.bio,
+                    country = dto.country,
+                    imageUrl = dto.imageUrl
+                )
+            }
+            teacherDao.insertTeachers(entities)
+            Result.success(entities)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
     }
 }

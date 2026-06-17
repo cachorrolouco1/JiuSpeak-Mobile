@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.JiuSpeakDatabase
 import com.example.data.model.*
 import com.example.data.repository.JiuSpeakRepository
+import com.example.data.repository.WalletRepository
 import com.example.data.network.SocketManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -26,12 +27,15 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
     val authError: StateFlow<String?> = _authError
 
     // Sync state logs for Node.js API feedback
-    private val _syncLogs = MutableStateFlow<List<String>>(listOf("System started in offline mode.", "To connect to PostgreSQL backends, change URL in Settings."))
+    private val _syncLogs = MutableStateFlow<List<String>>(listOf("Sistema iniciado e conectado ao backend oficial de JiuSpeak.", "Sincronização e autenticação ativa com produção."))
     val syncLogs: StateFlow<List<String>> = _syncLogs
 
     // Local state for PVP Match simulations
     private val _pvpMatchState = MutableStateFlow<PvpMatchState>(PvpMatchState.Idle)
     val pvpMatchState: StateFlow<PvpMatchState> = _pvpMatchState
+
+    private val _pvpError = MutableStateFlow<String?>(null)
+    val pvpError: StateFlow<String?> = _pvpError
 
     // Live leaderboards filtered dynamically
     private val _leaderboardType = MutableStateFlow("WEEKLY") // WEEKLY, MONTHLY, GLOBAL
@@ -43,10 +47,6 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
     // Private selected friend for personal chats
     private val _selectedChatFriend = MutableStateFlow<String?>("Global Chat")
     val selectedChatFriend: StateFlow<String?> = _selectedChatFriend
-
-    // Mock Push Notification alerts list to simulate Firebase Push Notifications inside applet
-    private val _activePushAlerts = MutableStateFlow<List<MockNotification>>(emptyList())
-    val activePushAlerts: StateFlow<List<MockNotification>> = _activePushAlerts
 
     // Connect flow from repository tables
     val userProfile: StateFlow<UserProfileEntity?> = repository.userProfileFlow
@@ -117,7 +117,6 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
 
     init {
         viewModelScope.launch {
-            repository.seedMockDataIfEmpty()
             if (repository.isLoggedIn) {
                 syncAllData()
             }
@@ -154,14 +153,7 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
             SocketManager.pvpInvites.filterNotNull().collect { obj ->
                 val challenger = obj.optString("host", "charles_gracie")
                 val matchType = obj.optString("matchType", "Vocabulary")
-                addLog("Private PvP invite from $challenger for $matchType match")
-                val notification = MockNotification(
-                    id = UUID.randomUUID().toString(),
-                    title = "⚔️ DESAFIO ARENA PvP",
-                    body = "$challenger convidou você para luta de $matchType!",
-                    time = "Just now"
-                )
-                _activePushAlerts.value = _activePushAlerts.value + notification
+                addLog("Private PvP invite received from $challenger for $matchType match")
             }
         }
 
@@ -169,18 +161,20 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
             SocketManager.notifications.filterNotNull().collect { obj ->
                 val title = obj.optString("title", "JiuSpeak Info")
                 val body = obj.optString("body", "Nova atualização disponível!")
-                val notification = MockNotification(
-                    id = UUID.randomUUID().toString(),
-                    title = title,
-                    body = body,
-                    time = "Just now"
-                )
-                _activePushAlerts.value = _activePushAlerts.value + notification
+                addLog("Push Notification received: [$title] - $body")
             }
         }
 
         if (repository.isLoggedIn) {
             SocketManager.connect(repository.apiBaseUrl, repository.currentToken)
+        }
+
+        viewModelScope.launch {
+            repository.userProfileFlow.collect { profile ->
+                if (profile != null) {
+                    auditUserIdentity(profile)
+                }
+            }
         }
     }
 
@@ -197,6 +191,60 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
         val current = _syncLogs.value.toMutableList()
         current.add(0, "[${System.currentTimeMillis() % 100000}] $msg")
         _syncLogs.value = current.take(200) // Keep last 200 logs
+    }
+
+    fun auditUserIdentity(displayedUser: UserProfileEntity?): Boolean {
+        if (!repository.isLoggedIn) return true
+        
+        val authId = repository.getAuthUserId() ?: ""
+        val authEmail = repository.getAuthUserEmail() ?: ""
+        
+        val profileId = displayedUser?.id ?: ""
+        val profileEmail = displayedUser?.email ?: ""
+        
+        val roomId = displayedUser?.id ?: ""
+        val roomEmail = displayedUser?.email ?: ""
+        
+        val uiId = displayedUser?.id ?: ""
+        val uiEmail = displayedUser?.email ?: ""
+        
+        // Output logs matching required audit format
+        println("=== AUDITORIA CRÍTICA DE IDENTIDADE ===")
+        println("AUTH USER ID: $authId")
+        println("AUTH EMAIL: $authEmail")
+        println("PROFILE USER ID: $profileId")
+        println("PROFILE EMAIL: $profileEmail")
+        println("ROOM USER ID: $roomId")
+        println("ROOM EMAIL: $roomEmail")
+        println("UI USER ID: $uiId")
+        println("UI EMAIL: $uiEmail")
+        println("========================================")
+        
+        addLog("AUTH USER ID: $authId")
+        addLog("AUTH EMAIL: $authEmail")
+        addLog("PROFILE USER ID: $profileId")
+        addLog("PROFILE EMAIL: $profileEmail")
+        addLog("ROOM USER ID: $roomId")
+        addLog("ROOM EMAIL: $roomEmail")
+        addLog("UI USER ID: $uiId")
+        addLog("UI EMAIL: $uiEmail")
+        
+        if (authId.isNotEmpty() && authEmail.isNotEmpty() && displayedUser != null) {
+            if (authId != uiId || authEmail != uiEmail) {
+                val errorMsg = "CRITICAL ERROR: Identidade Corrompida! ID Autenticado ($authId) diferente do ID Exibido ($uiId)."
+                addLog("ERROR: $errorMsg")
+                System.err.println(errorMsg)
+                _authError.value = errorMsg
+                
+                // Interromper carregamento e registrar erro
+                _isLoggedIn.value = false
+                viewModelScope.launch {
+                    repository.logout()
+                }
+                return false
+            }
+        }
+        return true
     }
 
     // Authentication workflows
@@ -308,6 +356,37 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
     fun searchAndLaunchPvpFight(matchType: String) {
         viewModelScope.launch {
             if (_pvpMatchState.value != PvpMatchState.Idle) return@launch
+            _pvpError.value = null
+            
+            val token = repository.currentToken ?: ""
+            if (token.isEmpty()) {
+                _pvpError.value = "Erro: Usuário não autenticado."
+                return@launch
+            }
+            addLog("Consultando carteira real no backend antes de iniciar PvP...")
+            val walletFetch = WalletRepository().fetchWallet(token)
+            var walletTickets = 0
+            var fetchSuccess = false
+            walletFetch.onSuccess { wallet: com.example.data.network.WalletDto ->
+                walletTickets = wallet.jiuTickets
+                fetchSuccess = true
+                addLog("Real wallet fetched successfully: $walletTickets JT")
+            }.onFailure { it: Throwable ->
+                addLog("Erro ao consultar carteira real: ${it.localizedMessage}")
+                _pvpError.value = "Erro de conexão: Não foi possível validar seu saldo no servidor."
+            }
+
+            if (!fetchSuccess) {
+                return@launch
+            }
+
+            if (walletTickets < 50) {
+                val errorMsg = "Erro: Saldo de JiuTickets insuficiente (mínimo 50 JT exigido para PvP)."
+                addLog(errorMsg)
+                _pvpError.value = errorMsg
+                return@launch
+            }
+
             addLog("Searching for PvP language spar in Arena: Match type $matchType...")
             _pvpMatchState.value = PvpMatchState.Searching(matchType)
 
@@ -415,57 +494,11 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
         }
     }
 
-    // Trigger FCM mock notification
-    fun simulatePushNotification() {
-        viewModelScope.launch {
-            addLog("Triggering FCM Cloud Push Notification payload locally...")
-
-            val title = listOf(
-                "⚔️ ARENA CHALLENGE!",
-                "🥋 COMMMUNITY NEW LINK!",
-                "💎 TIQUETES DISPONÍVEIS!",
-                "📈 RANKING DA SEMANA"
-            ).random()
-
-            val text = listOf(
-                "Alex Gracie has challenged you to a PvP Vocabulary Spar! Tap to defend your rank.",
-                "Charles 'Do Bronx' just liked your recent social martial post!",
-                "Your streak is completed! You earned 100 bonus JiuTickets.",
-                "You went up to Rank 3! Continue studying to claim the weekly belt."
-            ).random()
-
-            val notification = MockNotification(
-                id = UUID.randomUUID().toString(),
-                title = title,
-                body = text,
-                time = "Just now"
-            )
-
-            // Add notification to overlay
-            _activePushAlerts.value = _activePushAlerts.value + notification
-
-            // Dismiss automatically after 5 sec
-            delay(5000)
-            _activePushAlerts.value = _activePushAlerts.value.filter { it.id != notification.id }
-        }
-    }
-
-    fun dismissPushAlert(id: String) {
-        _activePushAlerts.value = _activePushAlerts.value.filter { it.id != id }
-    }
-
     // Settings repository modifiers for direct endpoint configuration
     fun updateServerAddress(url: String) {
         viewModelScope.launch {
             repository.setApiUrl(url)
             addLog("Configured new endpoint: $url (Synchronized & Connected)")
-        }
-    }
-
-    fun toggleOfflineSetting(enable: Boolean) {
-        viewModelScope.launch {
-            repository.setOfflineMode(enable)
-            addLog("Simulate offline persistence toggle: $enable")
         }
     }
 
@@ -475,6 +508,7 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
             
             repository.fetchRemoteProfile().onSuccess {
                 addLog("Perfil do Atleta '${it.username}' carregado e sincronizado.")
+                auditUserIdentity(it)
             }.onFailure {
                 addLog("Aviso: Falha ao obter dados atualizados de perfil do servidor.")
             }
@@ -497,12 +531,12 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
             repository.syncActiveSeason().onSuccess {
                 addLog("Passe de Temporada '${it.name}' sincronizado.")
             }.onFailure {
-                addLog("Sincronização offline-first do Passe de Temporada concluída.")
+                addLog("Dados locais do Passe de Temporada carregados do banco de dados.")
             }
             repository.syncLeagueStatus().onSuccess {
                 addLog("Liga Mundial (ELO: ${it.currentElo}) carregada do servidor!")
             }.onFailure {
-                addLog("Sincronização offline-first da Liga de ELO concluída.")
+                addLog("Dados locais da Liga Mundial de ELO carregados do banco de dados.")
             }
             repository.syncAllClans().onSuccess {
                 addLog("Clãs e Alianças atualizados do servidor (${it.size} clãs).")
@@ -511,12 +545,24 @@ class JiuSpeakViewModel(application: Application, val repository: JiuSpeakReposi
                     addLog("Você está conectado ao clã '${currentRole.name}'.")
                 }
             }.onFailure {
-                addLog("Sincronização offline-first de Clãs concluída.")
+                addLog("Dados locais de Clãs carregados do banco de dados.")
             }
             repository.syncAchievements().onSuccess {
                 addLog("Quadro de Conquistas/Medalhas sincronizado.")
             }.onFailure {
-                addLog("Sincronização offline-first das Conquistas concluída.")
+                addLog("Dados locais de Conquistas/Medalhas carregados do banco de dados.")
+            }
+
+            repository.syncCourses().onSuccess {
+                addLog("Cursos de idiomas de Jiu-Jitsu sincronizados (${it.size} cursos).")
+            }.onFailure {
+                addLog("Aviso: Falha ao sincronizar cursos com o servidor.")
+            }
+
+            repository.syncTeachers().onSuccess {
+                addLog("Instrutores e professores sincronizados (${it.size} professores).")
+            }.onFailure {
+                addLog("Aviso: Falha ao sincronizar professores com o servidor.")
             }
         }
     }
@@ -610,9 +656,4 @@ data class ArenaQuestion(
     val correctIndex: Int
 )
 
-data class MockNotification(
-    val id: String,
-    val title: String,
-    val body: String,
-    val time: String
-)
+

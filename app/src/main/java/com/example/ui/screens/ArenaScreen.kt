@@ -72,6 +72,8 @@ fun ArenaIdleView(
     battlesHistory: List<com.example.data.model.PvpBattleEntity>,
     currentProfile: UserProfileEntity
 ) {
+    val pvpError by viewModel.pvpError.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -84,6 +86,57 @@ fun ArenaIdleView(
         )
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        pvpError?.let { error ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+                    .testTag("pvp_error_card"),
+                colors = CardDefaults.cardColors(containerColor = Color(0x33EF4444)),
+                border = BorderStroke(1.dp, Color(0xFFEF4444))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("⚠️", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = error,
+                        color = Color(0xFFFCA5A5),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        if (currentProfile.jiuTickets < 50) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+                    .testTag("insufficient_balance_card"),
+                colors = CardDefaults.cardColors(containerColor = Color(0x19F59E0B)),
+                border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🛡️", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Acesso Limitado: Entradas PvP consomem 50 JiuTickets por combate. Seu saldo atual é de ${currentProfile.jiuTickets} JT.",
+                        color = Color(0xFFFDE047),
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
 
         // Big Gladiator banner
         Card(

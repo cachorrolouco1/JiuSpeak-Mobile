@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.UserProfileEntity
@@ -237,10 +238,11 @@ fun ShopScreen(viewModel: JiuSpeakViewModel) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Nenhum item cosmético no inventário do servidor.",
+                    text = "Nenhum item encontrado no inventário da conta. Acesse a Loja para equipar o seu lutador",
                     color = FontSecondary,
                     fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 )
             }
         } else {

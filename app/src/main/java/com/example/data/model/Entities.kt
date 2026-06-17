@@ -5,34 +5,34 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "user_profile")
 data class UserProfileEntity(
-    @PrimaryKey val id: String = "logged_user",
-    val username: String = "AtletaGuerreiro",
-    val fullName: String = "Renzo Gracie Believer",
-    val email: String = "campeao@jiuspeak.com",
-    val beltColor: String = "BLUE", // WHITE, BLUE, PURPLE, BROWN, BLACK
-    val level: Int = 18,
-    val xp: Int = 3450,
-    val xpNextLevel: Int = 5000,
-    val dailyStreak: Int = 12,
-    val jiuTickets: Int = 1450,
+    @PrimaryKey val id: String = "",
+    val username: String = "",
+    val fullName: String = "",
+    val email: String = "",
+    val beltColor: String = "WHITE", // WHITE, BLUE, PURPLE, BROWN, BLACK
+    val level: Int = 1,
+    val xp: Int = 0,
+    val xpNextLevel: Int = 1000,
+    val dailyStreak: Int = 0,
+    val jiuTickets: Int = 0,
     val selectedAvatar: String = "avatar_fighter",
     val selectedFrameColor: String = "#009DFF",
-    val currentWeeklyRankingRank: Int = 4,
-    val activeToken: String = "jwt_premium_mock_token_jiuspeak_secret_key",
-    val bio: String = "BJJ Athlete studying English for international tournaments.",
-    val city: String = "Rio de Janeiro",
-    val country: String = "Brazil",
+    val currentWeeklyRankingRank: Int = 1,
+    val activeToken: String = "",
+    val bio: String = "",
+    val city: String = "",
+    val country: String = "",
     val nativeLanguage: String = "Portuguese",
     val studiedLanguages: String = "English",
-    val learningGoals: String = "Fluent English for Teaching Seminars",
-    val instagram: String = "jiuspeak",
-    val youtube: String = "jiuspeak_channel",
-    val facebook: String = "jiuspeakofficial",
-    val website: String = "www.jiuspeak.com.br",
-    val coverPhoto: String = "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=600",
-    val isVerified: Boolean = true,
-    val followersCount: Int = 1420,
-    val followingCount: Int = 523
+    val learningGoals: String = "",
+    val instagram: String = "",
+    val youtube: String = "",
+    val facebook: String = "",
+    val website: String = "",
+    val coverPhoto: String = "",
+    val isVerified: Boolean = false,
+    val followersCount: Int = 0,
+    val followingCount: Int = 0
 )
 
 @Entity(tableName = "daily_missions")

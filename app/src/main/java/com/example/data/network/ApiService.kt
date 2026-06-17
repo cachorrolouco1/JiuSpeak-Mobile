@@ -89,10 +89,15 @@ data class WalletTransactionDto(
 )
 
 data class WalletDto(
-    val balance: Int,
-    val jiuTickets: Int,
-    val transactions: List<WalletTransactionDto>
-)
+    @SerializedName("coins") val coins: Double? = 0.0,
+    @SerializedName("balanceAvailableBRL") val balanceAvailableBRL: Double? = 0.0,
+    @SerializedName("balancePendingBRL") val balancePendingBRL: Double? = 0.0,
+    @SerializedName("totalEarnedBRL") val totalEarnedBRL: Double? = 0.0,
+    @SerializedName("totalWithdrawnBRL") val totalWithdrawnBRL: Double? = 0.0
+) {
+    val jiuTickets: Int get() = coins?.toInt() ?: 0
+    val balance: Int get() = balanceAvailableBRL?.toInt() ?: 0
+}
 
 data class SubscriptionPlanDto(
     val id: String,
@@ -316,6 +321,12 @@ object JiuSpeakApiClient {
     private var cookieJar: okhttp3.CookieJar = InMemoryCookieJar()
     private var detectedCsrfToken: String? = null
 
+    fun clearSession() {
+        detectedCsrfToken = null
+        (cookieJar as? ClearableCookieJar)?.clear()
+        println("JiuSpeakApiClient session cleared: CSRF and Cookies completely purged.")
+    }
+
     fun configure(baseUrl: String, context: android.content.Context? = null) {
         var formattedUrl = baseUrl.trim()
         if (!formattedUrl.endsWith("/")) {
@@ -432,6 +443,10 @@ object JiuSpeakApiClient {
                         println("=== JIUSPEAK API REQUEST START ===")
                         println("URL: ${request.url}")
                         println("METHOD: ${request.method}")
+                        val currentCookies = cookieJar.loadForRequest(request.url)
+                        if (currentCookies.isNotEmpty()) {
+                            println("COOKIES: " + currentCookies.joinToString("; ") { "${it.name}=${it.value}" })
+                        }
                         request.headers.forEach { pair ->
                             println("REQUEST HEADER: ${pair.first}: ${pair.second}")
                         }
@@ -512,8 +527,17 @@ object JiuSpeakApiClient {
     }
 }
 
-class InMemoryCookieJar : okhttp3.CookieJar {
+interface ClearableCookieJar : okhttp3.CookieJar {
+    fun clear()
+}
+
+class InMemoryCookieJar : ClearableCookieJar {
     private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, List<okhttp3.Cookie>>()
+
+    override fun clear() {
+        cookieStore.clear()
+        println("InMemoryCookieJar purged successfully!")
+    }
 
     override fun saveFromResponse(url: okhttp3.HttpUrl, cookies: List<okhttp3.Cookie>) {
         val host = url.host
@@ -531,9 +555,15 @@ class InMemoryCookieJar : okhttp3.CookieJar {
     }
 }
 
-class PersistentCookieJar(context: android.content.Context) : okhttp3.CookieJar {
+class PersistentCookieJar(context: android.content.Context) : ClearableCookieJar {
     private val cookieStore = java.util.concurrent.ConcurrentHashMap<String, MutableList<okhttp3.Cookie>>()
     private val prefs = context.getSharedPreferences("jiuspeak_cookies", android.content.Context.MODE_PRIVATE)
+
+    override fun clear() {
+        cookieStore.clear()
+        prefs.edit().clear().apply()
+        println("PersistentCookieJar purged successfully!")
+    }
 
     init {
         try {

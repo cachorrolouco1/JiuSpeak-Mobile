@@ -128,6 +128,7 @@ val buildDirFile = layout.buildDirectory.get().asFile
 tasks.register("copyApkToReleases") {
   val targetFile = File(rootDirFile, "releases/app-debug.apk")
   val targetFileCustom = File(rootDirFile, "releases/jiuspeakmobilev1.0.0.apk")
+  val targetFileLatest = File(rootDirFile, "releases/jiuspeakmobile-latest.apk")
   val sourceFile = File(buildDirFile, "outputs/apk/debug/app-debug.apk")
   
   doLast {
@@ -141,6 +142,9 @@ tasks.register("copyApkToReleases") {
       
       sourceFile.copyTo(targetFileCustom, overwrite = true)
       logger.lifecycle("--- COPY CUSTOM APK SUCCESS: ${sourceFile.length()} bytes copied to releases/jiuspeakmobilev1.0.0.apk ---")
+
+      sourceFile.copyTo(targetFileLatest, overwrite = true)
+      logger.lifecycle("--- COPY LATEST APK SUCCESS: ${sourceFile.length()} bytes copied to releases/jiuspeakmobile-latest.apk ---")
       
       // Calculate SHA-256
       val digest = MessageDigest.getInstance("SHA-256")

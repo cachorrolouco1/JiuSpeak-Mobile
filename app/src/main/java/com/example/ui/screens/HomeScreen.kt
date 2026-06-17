@@ -132,7 +132,7 @@ fun HomeScreen(viewModel: JiuSpeakViewModel) {
                 // JiuTickets Wallet
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { viewModel.navigateTo("SHOP") }
+                    modifier = Modifier.clickable { viewModel.navigateTo("WALLET") }
                 ) {
                     Text("💎", fontSize = 11.sp)
                     Spacer(modifier = Modifier.width(2.dp))

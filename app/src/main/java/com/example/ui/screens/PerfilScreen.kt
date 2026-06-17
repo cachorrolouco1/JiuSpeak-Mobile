@@ -142,9 +142,11 @@ fun PerfilScreen(viewModel: JiuSpeakViewModel) {
 
             // Stat 3: Accumulated Tickets
             Card(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { viewModel.navigateTo("WALLET") },
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = BorderStroke(1.dp, DarkCard)
+                border = BorderStroke(1.dp, GoldAccent.copy(alpha = 0.3f))
             ) {
                 Column(
                     modifier = Modifier.padding(12.dp),

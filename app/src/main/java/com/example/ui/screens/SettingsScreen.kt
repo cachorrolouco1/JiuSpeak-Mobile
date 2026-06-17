@@ -30,7 +30,6 @@ import com.example.ui.widgets.GlowButton
 fun SettingsScreen(viewModel: JiuSpeakViewModel) {
     val syncLogs by viewModel.syncLogs.collectAsState()
     var editBaseUrl by remember { mutableStateOf(JiuSpeakApiClient.getBaseUrl()) }
-    var mockOfflineToggle by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -90,76 +89,6 @@ fun SettingsScreen(viewModel: JiuSpeakViewModel) {
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text("SAVE & CONNECT", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color.White)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // QA UTILITIES SECTION
-        Text(
-            text = "DEVELOPMENT QA TOOLS",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Black,
-            color = NeonCyan,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            border = BorderStroke(1.dp, DarkCard)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                // Toggle offline mode simulator
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Persist Database Locally (Offline Play)", color = FontPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text("Force applet to store and run battles local-first, avoiding server timeouts.", color = FontSecondary, fontSize = 11.sp)
-                    }
-
-                    Switch(
-                        checked = mockOfflineToggle,
-                        onCheckedChange = {
-                            mockOfflineToggle = it
-                            viewModel.toggleOfflineSetting(it)
-                        },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = NeonCyan,
-                            checkedTrackColor = NeonBlue.copy(alpha = 0.5f)
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Divider(color = DarkCard)
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // FCM push launcher
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Simulate FCM Push Notifications", color = FontPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text("Simulate a remote background push notification arriving from the Firebase Console.", color = FontSecondary, fontSize = 11.sp)
-                    }
-
-                    Button(
-                        onClick = { viewModel.simulatePushNotification() },
-                        colors = ButtonDefaults.buttonColors(containerColor = NeonBlue),
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text("FIRE PUSH", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color.White)
-                    }
                 }
             }
         }

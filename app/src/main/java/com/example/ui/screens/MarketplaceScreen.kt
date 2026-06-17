@@ -30,6 +30,20 @@ import com.example.ui.widgets.JiuBeltBadge
 @Composable
 fun MarketplaceScreen(viewModel: JiuSpeakViewModel) {
     val teachers by viewModel.teachersList.collectAsState()
+    var searchQuery by remember { mutableStateOf("") }
+
+    val filteredTeachers = remember(teachers, searchQuery) {
+        if (searchQuery.isBlank()) {
+            teachers
+        } else {
+            teachers.filter { teacher ->
+                teacher.name.contains(searchQuery, ignoreCase = true) ||
+                teacher.belt.contains(searchQuery, ignoreCase = true) ||
+                teacher.country.contains(searchQuery, ignoreCase = true) ||
+                (teacher.bio ?: "").contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -43,10 +57,10 @@ fun MarketplaceScreen(viewModel: JiuSpeakViewModel) {
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // SEARCH BAR MOCK
+        // Interative search bar, strictly avoiding any disabled placeholder
         OutlinedTextField(
-            value = "",
-            onValueChange = {},
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
             placeholder = { Text("Filter professors by name, belt, country...", color = FontSecondary) },
             singleLine = true,
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = NeonBlue) },
@@ -64,7 +78,7 @@ fun MarketplaceScreen(viewModel: JiuSpeakViewModel) {
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(teachers) { teacher ->
+            items(filteredTeachers) { teacher ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
