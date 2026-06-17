@@ -337,64 +337,6 @@ fun HomeScreen(viewModel: JiuSpeakViewModel) {
             }
         }
 
-        // ONLINE FRIENDS ROW
-        Text(
-            text = "MATS SPARRING PARTNERS",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Black,
-            color = NeonBlue,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        val samplePartners = listOf(
-            Triple("Carlos_BJJ", "BLACK", "avatar_charles"),
-            Triple("Anya_Moscow", "WHITE", "avatar_fighter1"),
-            Triple("Prof_Igor_LA", "BLACK", "avatar_igor"),
-            Triple("JohnJones_Pro", "PURPLE", "avatar_john"),
-            Triple("Mestre_Rickson", "BLACK", "avatar_fighter3")
-        )
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(samplePartners) { partner ->
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable {
-                        viewModel.selectChatFriend(partner.first)
-                        viewModel.navigateTo("CHAT")
-                    }
-                ) {
-                    Box {
-                        AvatarWithFrame(
-                            avatarId = partner.third,
-                            frameColorHex = "#00BFFF",
-                            level = 10 + (partner.first.length),
-                            size = 50.dp
-                        )
-                        // Online green notifier
-                        Box(
-                            modifier = Modifier
-                                .size(11.dp)
-                                .clip(CircleShape)
-                                .background(Color.Green)
-                                .border(1.5.dp, DarkBg, CircleShape)
-                                .align(Alignment.TopEnd)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = partner.first.take(10),
-                        color = FontPrimary,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-
         // DAILY MISSIONS (DAILY QUESTS) WITH DIRECT REWARD DRAWER
         CinematicHeader(
             title = "Daily Quests",
